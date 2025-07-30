@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Topics{% endblock %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+    :root {
+        --color-text: #616161;
+        --color-text-btn: #ffffff;
+        --card1-gradient-color1: #f12711;
+        --card1-gradient-color2: #f5af19;
+        --card2-gradient-color1: #7F00FF;
+        --card2-gradient-color2: #E100FF;
+        --card3-gradient-color1: #3f2b96;
+        --card3-gradient-color2: #a8c0ff;
+        --card4-gradient-color1: #11998e;
+        --card4-gradient-color2: #38ef7d;
+    }
+
+    .card-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+    }
+
+    .card-wrap {
+        width: 280px;
+        background: #fff;
+        border-radius: 20px;
+        border: 5px solid #fff;
+        overflow: hidden;
+        color: var(--color-text);
+        box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px,
+        rgba(0, 0, 0, 0.23) 0px 6px 6px;
+        transition: all 0.2s ease-in-out;
+
+        transform: translateY(30px);
+        opacity: 0;
+        transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+
+    .card-wrap.visible {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .card-wrap:hover {
+        transform: scale(1.03);
+    }
+
+    .card-header {
+        height: 200px;
+        width: 100%;
+        border-radius: 100% 0% 100% 0% / 0% 50% 50% 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .card-header .image-mask {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+    }
+
+    .card-header .image-mask img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .card-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .card-title {
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    .card-text {
+        text-align: center;
+        font-size: 13px;
+        margin-bottom: 15px;
+        min-height: 40px;
+    }
+
+    .badge {
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        margin-bottom: 10px;
+    }
+
+    .btn-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .card-btn {
+        flex: 1 1 22%;
+        border: none;
+        border-radius: 100px;
+        padding: 5px 10px;
+        color: var(--color-text-btn);
+        font-size: 11px;
+        text-transform: uppercase;
+        text-decoration: none;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .card-btn.one {
+        background: linear-gradient(to left, var(--card1-gradient-color1), var(--card1-gradient-color2));
+    }
+
+    .card-btn.two {
+        background: linear-gradient(to left, var(--card2-gradient-color1), var(--card2-gradient-color2));
+    }
+
+    .card-btn.three {
+        background: linear-gradient(to left, var(--card3-gradient-color1), var(--card3-gradient-color2));
+    }
+
+    .card-btn.four {
+        background: linear-gradient(to left, var(--card4-gradient-color1), var(--card4-gradient-color2));
+    }
+
+    h1.title {
+        text-align: center;
+        font-weight: 900;
+        font-size: 2.5rem;
+        background: linear-gradient(to right, #f77190ff, #300228ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 40px;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const cards = document.querySelectorAll('.card-wrap');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        cards.forEach(card => {
+            observer.observe(card);
+        });
+    });
+</script>
+
+<div class="container mt-5">
+    <h1 class="title">Themen Liste</h1>
+    <div class="card-grid">
+        {% for topic in topics %}
+        {% with forloop.counter0|add:"1"|divisibleby:4 as use_four %}
+        {% with forloop.counter0|add:"1"|divisibleby:3 as use_three %}
+        <div class="card-wrap">
+            <div class="card-header {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                <div class="image-mask">
+                    {% if topic.configuration_img %}
+                    <img src="{{ topic.configuration_img.url }}" alt="{{ topic.topic }}">
+                    {% else %}
+                    <img src="{% static 'default-image.png' %}" alt="Default">
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-content">
+                <h5 class="card-title">{{ topic.topic }}</h5>
+                <p class="card-text">{{ topic.description|truncatechars:100 }}</p>
+
+                {% if topic.visible %}
+                <span class="badge bg-success">Sichtbar</span>
+                {% else %}
+                <span class="badge bg-secondary">Versteckt</span>
+                {% endif %}
+
+                <div class="btn-row">
+                    <a href="{% url 'toggle_topic_visibility' topic.topic_id %}"
+                       class="card-btn {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                        {% if topic.visible %}Verstecken{% else %}Anzeigen{% endif %}
+                    </a>
+                    <a href="{% url 'topic_questions' topic.topic_id %}"
+                       class="card-btn {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                        Fragen
+                    </a>
+                    <a href="{% url 'edit_topic' topic.topic_id %}"
+                       class="card-btn {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                        Bearbeiten
+                    </a>
+                    <a href="{% url 'delete_topic' topic.topic_id %}" onclick="return confirm('Dieses Thema löschen ?')"
+                       class="card-btn {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                        Löschen
+                    </a>
+                </div>
+
+                <div class="btn-row">
+                    <a href="{% url 'add_question' topic.topic_id %}"
+                       class="card-btn {% if use_four %}four{% elif use_three %}three{% else %}one{% endif %}">
+                        + Frage
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endwith %}
+        {% empty %}
+        <p>Keine Themen vorhanden</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
