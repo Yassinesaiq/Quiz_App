@@ -64,6 +64,12 @@
     }
 </style>
 
+<div class="text-center my-4">
+    <a href="{% url 'download_all_results_excel' %}" class="btn btn-outline-dark">
+        📥 Alle Ergebnisse als Excel herunterladen
+    </a>
+</div>
+
 <div class="results-grid">
     {% for result in results %}
     <div class="result-card">

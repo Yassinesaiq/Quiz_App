@@ -230,7 +230,7 @@ def score_list_view(request):
 
 #Excel Datei Herunterladen 
 
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 
 @login_required
 def download_result_excel(request, result_id):
@@ -287,9 +287,92 @@ def download_result_excel(request, result_id):
     workbook.save(response)
     return response
 
+from openpyxl import Workbook
+from django.http import HttpResponse
+from .models import QuizResult
+from openpyxl.styles import Font, PatternFill
+
+from django.contrib.admin.views.decorators import staff_member_required
+@staff_member_required
+def download_all_results_excel(request):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from django.http import HttpResponse
+    from .models import QuizResult
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Alle Ergebnisse"
+
+    # Farben und Formatierungen
+    bold_font = Font(bold=True)
+    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # Hellgrün
+    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")    # Hellrot
+    blue_fill = PatternFill(start_color="90D5FF", end_color="90D5FF", fill_type="solid")    # Hellrot
+
+    # Kopfzeile
+    headers = [
+        "Benutzer", "Vorname", "Nachname", 
+        "Thema", "Score", "Datum", 
+        "Frage", "Richtige Antwort", "Falsch Gewählt"
+    ]
+    sheet.append(headers)
+
+    for col in range(1, len(headers) + 1):
+        cell = sheet.cell(row=1, column=col)
+        cell.font = bold_font
+
+    # Datenzeilen schreiben
+    for result in QuizResult.objects.all().prefetch_related("wrong_answers", "user"):
+        wrongs = result.wrong_answers.all()
+        if wrongs:
+            for wrong in wrongs:
+                sheet.append([
+                    result.user.username,
+                    result.user.first_name,
+                    result.user.last_name,
+                    str(result.topic),
+                    result.score,
+                    result.created_at.strftime("%d.%m.%Y %H:%M"),
+                    wrong.question,
+                    wrong.correct_answer,
+                    wrong.selected_option
+                ])
+        else:
+            sheet.append([
+                result.user.username,
+                result.user.first_name,
+                result.user.last_name,
+                str(result.topic),
+                result.score,
+                result.created_at.strftime("%d.%m.%Y %H:%M"),
+                "100%", "Richtig", "Beantwortet"
+            ])
+
+    # Spalten einfärben
+    richt_col = 8  
+    falsch_col = 9 
+    score_col = 5
+    for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row):
+        row[richt_col - 1].fill = green_fill
+        row[falsch_col - 1].fill = red_fill
+        row[score_col - 1].fill = blue_fill
+
+    # Download vorbereiten
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="alle_ergebnisse.xlsx"'
+    workbook.save(response)
+    return response
+
+
+
 @login_required
 def delete_result(request, result_id):
     result = get_object_or_404(QuizResult, pk=result_id)
     result_id = result.result_id
     result.delete()
     return redirect('score_list_view')
+
+

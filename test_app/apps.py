@@ -2,7 +2,7 @@ from django.apps import AppConfig
 from django.utils import timezone
 from datetime import timedelta
 
-class YourAppConfig(AppConfig):
+class AppConfig(AppConfig):
     name = 'test_app'  
 
     def ready(self):

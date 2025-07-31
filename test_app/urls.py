@@ -55,6 +55,7 @@ urlpatterns = [
     path('api/submit-result/', SubmitResultView.as_view()),
     path('score/', views.score_list_view ,name='score_list_view'),
     path('download_excel/<int:result_id>/', views.download_result_excel, name='download_result_excel'),
+    path('download/all-results/', views.download_all_results_excel, name='download_all_results_excel'),
     path('score/<int:result_id>/delete/', views.delete_result, name='delete_result'),
 
 ]
