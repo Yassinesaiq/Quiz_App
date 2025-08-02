@@ -3,6 +3,12 @@ from rest_framework import serializers
 from .models import *
 
 
+''' 
+    Serializers : 
+    used to convert complex data types, such as Django model instances,
+    into Python data types that can be easily rendered into JSON, XML,
+    or other content types '''
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
@@ -41,7 +47,7 @@ class WrongAnswerSerializer(serializers.ModelSerializer):
 
 class QuizResultSerializer(serializers.ModelSerializer):
     wrong_answers = WrongAnswerSerializer(many=True)
-    topic = serializers.CharField(required=False, allow_blank=True)  # ← wichtig!
+    topic = serializers.CharField(required=False, allow_blank=True)  #  wichtig!
 
     class Meta:
         model = QuizResult

@@ -21,6 +21,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from openpyxl import Workbook
 from django.utils.timezone import localtime
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from rest_framework import status
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -28,7 +34,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -37,7 +43,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all().order_by('name')
     serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
 
 class CustomPagination(PageNumberPagination):
@@ -60,12 +66,14 @@ class TopicViewset(viewsets.ModelViewSet):
     queryset = Topics.objects.filter(visible=True) 
     serializer_class = TopicSerializer
     pagination_class = CustomPagination
+    permission_classes = [IsAuthenticated]
    
 
 @login_required
 def topics_list(request):
     topics = Topics.objects.all()
     return render(request, 'topics_list.html', {'topics': topics})
+
 @login_required
 def topic_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -205,7 +213,16 @@ class LoginView(APIView):
             return Response({"token": token.key})
         return Response({"error": "Invalid credentials"}, status=400)
         
-
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    user = request.user
+    data = [{
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name
+    }]
+    return Response(data, status=status.HTTP_200_OK)
 
 class SubmitResultView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -224,12 +241,14 @@ class SubmitResultView(APIView):
 def score_list_view(request):
     results = QuizResult.objects.prefetch_related("wrong_answers", "user").order_by("-created_at")
     for result in results:
+     result.created_at = localtime(result.created_at + timedelta(hours=2))  # Konvertiere in lokale Zeit
     # Berechne das Löschdatum: 60 Tage nach Erstellung
      result.deletion_date = localtime(result.created_at + timedelta(days=60))
     return render(request, "score_list.html", {"results": results})
 
 #Excel Datei Herunterladen 
 
+#https://openpyxl.readthedocs.io/en/stable/
 from openpyxl.styles import Font, PatternFill
 
 @login_required
@@ -349,7 +368,7 @@ def download_all_results_excel(request):
                 "100%", "Richtig", "Beantwortet"
             ])
 
-    # Spalten einfärben
+
     richt_col = 8  
     falsch_col = 9 
     score_col = 5
@@ -369,10 +388,14 @@ def download_all_results_excel(request):
 
 
 @login_required
-def delete_result(request, result_id):
+def delete_result(result_id):
     result = get_object_or_404(QuizResult, pk=result_id)
     result_id = result.result_id
     result.delete()
     return redirect('score_list_view')
 
 
+@login_required
+def delete_all_result(request):
+    QuizResult.objects.all().delete()
+    return redirect('score_list_view')
