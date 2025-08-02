@@ -38,7 +38,6 @@ class Topics(models.Model):
     
   
 class QuizResult(models.Model):
-    result_id = models.AutoField(db_column='result_id', primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='results', null=True)
     score = models.IntegerField()
     topic = models.TextField(db_column='topic', blank=True, null=True,max_length=100)

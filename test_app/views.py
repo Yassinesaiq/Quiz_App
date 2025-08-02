@@ -251,24 +251,26 @@ def score_list_view(request):
 #https://openpyxl.readthedocs.io/en/stable/
 from openpyxl.styles import Font, PatternFill
 
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from django.contrib.auth.decorators import login_required
+
+from .models import QuizResult
+
 @login_required
-def download_result_excel(request, result_id):
-    # Nur Admins dürfen Ergebnisse herunterladen
+def download_result_excel(request, id):
     if not request.user.is_staff:
         return HttpResponse("Nicht erlaubt", status=403)
 
-    try:
-        result = QuizResult.objects.get(id=result_id)
-    except QuizResult.DoesNotExist:
-        return HttpResponse("Ergebnis nicht gefunden", status=404)
+    result = get_object_or_404(QuizResult, id=id)
 
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Quiz Ergebnis"
 
     bold_font = Font(bold=True)
-
-    # Kopfzeilen
     sheet["A1"] = "Benutzer"
     sheet["B1"] = result.user.username
     sheet["A2"] = "Thema"
@@ -281,9 +283,8 @@ def download_result_excel(request, result_id):
     for cell in ["A1", "A2", "A3", "A4"]:
         sheet[cell].font = bold_font
 
-    sheet.append([])  # Leerzeile
+    sheet.append([])
 
-    # Tabelle der falschen Antworten
     sheet.append(["Frage", "Richtige Antwort", "Gegebene Antwort"])
     last_row = sheet.max_row
     for col in range(1, 4):
@@ -296,15 +297,14 @@ def download_result_excel(request, result_id):
             wrong.selected_option
         ])
 
-    # Antwort
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    filename = f"{result.user.username}_result_{result.id}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'attachment; filename="{result.user.username}_result_{result.id}.xlsx"'
 
     workbook.save(response)
     return response
+
 
 from openpyxl import Workbook
 from django.http import HttpResponse
@@ -388,9 +388,8 @@ def download_all_results_excel(request):
 
 
 @login_required
-def delete_result(result_id):
-    result = get_object_or_404(QuizResult, pk=result_id)
-    result_id = result.result_id
+def delete_result(request, id):
+    result = get_object_or_404(QuizResult, id=id)
     result.delete()
     return redirect('score_list_view')
 

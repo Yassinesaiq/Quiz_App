@@ -54,9 +54,9 @@ urlpatterns = [
     path('topics/<int:topic_id>/toggle_visibility/', views.toggle_topic_visibility, name='toggle_topic_visibility'),
     path('api/submit-result/', SubmitResultView.as_view()),
     path('score/', views.score_list_view ,name='score_list_view'),
-    path('download_excel/<int:result_id>/', views.download_result_excel, name='download_result_excel'),
+    path('score/<int:id>/download/', views.download_result_excel, name='download_result_excel'),
     path('download/all-results/', views.download_all_results_excel, name='download_all_results_excel'),
-    path('score/<int:result_id>/delete/', views.delete_result, name='delete_result'),
+    path('score/<int:id>/delete/', views.delete_result, name='delete_result'),
     path('score/delete/', views.delete_all_result, name='delete_all_result'),
     path('api/user/', views.get_current_user, name='get_current_user'),
 
