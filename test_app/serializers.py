@@ -20,10 +20,12 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         model = Group
         fields = ['url', 'name']
 
+
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Questions
         fields = ['question_id','question','option1','option2','option3','option4','answer','topic_id','des_img']
+        
     def get_image_url(self, obj):
         if obj.des_img:
             return self.context['request'].build_absolute_uri(obj.des_img.url)
@@ -45,13 +47,14 @@ class WrongAnswerSerializer(serializers.ModelSerializer):
         model = WrongAnswer
         fields = ['question', 'correct_answer', 'selected_option']
 
+
 class QuizResultSerializer(serializers.ModelSerializer):
     wrong_answers = WrongAnswerSerializer(many=True)
     topic = serializers.CharField(required=False, allow_blank=True)  #  wichtig!
 
     class Meta:
         model = QuizResult
-        fields = ['score', 'wrong_answers', 'topic','maxsize']
+        fields = ['score', 'wrong_answers', 'topic','maxsize','session']
 
     def create(self, validated_data):
         wrong_answers_data = validated_data.pop('wrong_answers')
@@ -60,7 +63,26 @@ class QuizResultSerializer(serializers.ModelSerializer):
         quiz_result = QuizResult.objects.create(user=user, topic=topic, **validated_data)
 
 
-        for wrong_data in wrong_answers_data:
+        for wrong_data in wrong_answers_data:   
             WrongAnswer.objects.create(quiz_result=quiz_result, **wrong_data)
 
         return quiz_result
+
+from rest_framework import serializers
+from .models import TextQuestion
+
+class TextQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TextQuestion
+        fields = ['id', 'topic', 'question_text']  # Falls du mehr Felder hast, hier hinzufügen
+
+class TextAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TextAnswer
+        fields =['session']
+
+
+
+
+
+

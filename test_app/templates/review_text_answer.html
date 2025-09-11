@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Antwort bewerten</h2>
+
+<p><strong>Frage:</strong> {{ answer.question.question_text }}</p>
+<p><strong>Antwort des Benutzers:</strong> {{ answer.answer_text }}</p>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="session" value="{{ request.GET.session }}">
+    
+    <div class="mb-3">
+        <label class="form-label">Punkte vergeben (max. {{ answer.question.max_score }}):</label>
+        <input type="number" step="0.5" name="score" value="{{ answer.score|default:'' }}" class="form-control"
+               max="{{ answer.question.max_score }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Feedback:</label>
+        <textarea name="feedback" class="form-control" rows="3">{{ answer.feedback|default:'' }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Speichern</button>
+    <a href="{% url 'text_answers_list' %}?session={{ request.GET.session }}" class="btn btn-secondary">Abbrechen</a>
+</form>
+
+{% endblock %}
+
+
+
+
+
+
+

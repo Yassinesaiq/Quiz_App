@@ -24,13 +24,16 @@ from . import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from .views import logout_view
+from .views import TextQuestionByTopicNameView, SubmitTextAnswerAPI
 from rest_framework.authtoken.views import obtain_auth_token
+
 # Router configuration
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'questions', views.QuestionsViewset)
 router.register(r'topic', views.TopicViewset)
+router.register(r'text-questions',views.TextQuestionViewset)
 
 # URL patterns
 urlpatterns = [
@@ -59,8 +62,21 @@ urlpatterns = [
     path('score/<int:id>/delete/', views.delete_result, name='delete_result'),
     path('score/delete/', views.delete_all_result, name='delete_all_result'),
     path('api/user/', views.get_current_user, name='get_current_user'),
+    path("text-answers/", views.text_answers_list, name="text_answers_list"),
+    path("text-answers/<int:answer_id>/review/", views.review_text_answer, name="review_text_answer"),
+    path('api/text-questions/', TextQuestionByTopicNameView.as_view(), name='text_questions_by_topic'),
+    path("api/submit-text-answer/", SubmitTextAnswerAPI.as_view(), name="submit_text_answer"),
+    path("api/start-session/", views.start_test_session, name="start_test_session"),
+    path("session/<int:session_id>/delete/", views.delete_session, name="delete_session"),
+    path("topics/choose-type/", views.choose_topic_type, name="choose_topic_type")
 
+
+    
+
+    
 ]
+
+
 
 # Serve media files during development
 if settings.DEBUG:

@@ -35,9 +35,22 @@ class Topics(models.Model):
     
     def __str__(self):
         return f"{self.topic} "
-    
-  
+
+class TestSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="test_sessions")
+    topic = models.ForeignKey('test_app.Topics', on_delete=models.CASCADE, related_name="sessions")
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    # Optional: Gesamtscore (MCQ + Textfragen)
+    total_score = models.FloatField(default=0)
+
+    def __str__(self):
+        return f"TestSession von {self.user.username} für {self.topic.topic} am {self.started_at.strftime('%d.%m.%Y %H:%M')}"
+
+
 class QuizResult(models.Model):
+    session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="quiz_results", null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='results', null=True)
     score = models.IntegerField()
     topic = models.TextField(db_column='topic', blank=True, null=True,max_length=100)
@@ -66,5 +79,37 @@ class WrongAnswer(models.Model):
     def __str__(self):
         return f"Wrong: {self.question}"
     
+
+class TextQuestion(models.Model):
+    question_text = models.TextField()
+    topic = models.ForeignKey(Topics, on_delete=models.CASCADE, related_name='text_questions')
+    max_score = models.FloatField(default=0)  # maximal erreichbare Punkte (für spätere Bewertung)
+
+    class Meta:
+        managed = True
+        db_table = 'TextQuestion'
+
+    def __str__(self):
+        return f"Textfrage: {self.question_text[:50]}"
+
+    
+class TextAnswer(models.Model):
+    session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="text_answers", null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='text_answers')
+    question = models.ForeignKey('TextQuestion', on_delete=models.CASCADE, related_name='answers')
+    answer_text = models.TextField()
+    is_reviewed = models.BooleanField(default=False)  # Wurde es kontrolliert?
+    score = models.FloatField(null=True, blank=True)  # Vergebene Punkte
+    feedback = models.TextField(blank=True, null=True)  # Feedback vom Ausbilder
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} – {self.question.question_text[:30]}"
+
+    def is_pending(self):
+        """Hilfsfunktion: Gibt zurück, ob diese Antwort noch bewertet werden muss."""
+        return not self.is_reviewed or self.score is None
+    
+
 
 
