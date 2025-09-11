@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .card-grid {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 40px;
+        flex-wrap: wrap;
+    }
+    .type-card {
+        width: 280px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: rgba(0, 0, 0, 0.15) 0px 10px 20px;
+        text-align: center;
+        padding: 20px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .type-card:hover {
+        transform: translateY(-5px);
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 15px 25px;
+    }
+    .type-card h3 {
+        margin-top: 15px;
+        color: #37018d;
+        font-weight: bold;
+    }
+    .type-card p {
+        font-size: 14px;
+        color: #555;
+    }
+    .type-card i {
+        font-size: 40px;
+        color: #37018d;
+    }
+</style>
+
+<h2 class="text-center">Neues Thema erstellen</h2>
+<p class="text-center">Wähle den Typ des Themas aus:</p>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card-grid">
+        <button type="submit" name="choice" value="mcq" class="type-card">
+            <i class="bi bi-list-task"></i>
+            <h3>MCQ</h3>
+            <p>Mehrfachauswahlfragen</p>
+        </button>
+
+        <button type="submit" name="choice" value="text" class="type-card">
+            <i class="bi bi-chat-left-text"></i>
+            <h3>Textfrage</h3>
+            <p>Offene Fragen mit manueller Bewertung</p>
+        </button>
+
+        <button type="submit" name="choice" value="mixed" class="type-card">
+            <i class="bi bi-shuffle"></i>
+            <h3>MCQ + Text</h3>
+            <p>Kombination aus MCQ und Textfragen</p>
+        </button>
+    </div>
+</form>
+{% endblock %}

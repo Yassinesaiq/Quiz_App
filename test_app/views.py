@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group, User
-from rest_framework import permissions, viewsets
+from rest_framework import viewsets ,status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from .serializers import *
@@ -9,24 +9,31 @@ from .forms import *
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
 import logging
-from django.contrib.auth import logout
+from django.contrib.auth import logout , authenticate
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
-from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated ,AllowAny
 from rest_framework.authentication import TokenAuthentication
 from openpyxl import Workbook
 from django.utils.timezone import localtime
-from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from django.contrib.auth.models import User
+from django.http import HttpResponse
+from openpyxl.styles import Font, PatternFill
+from django.contrib.admin.views.decorators import staff_member_required
+from rest_framework import generics
+from .models import TextQuestion
+from .serializers import TextQuestionSerializer
+from rest_framework.response import Response
 from rest_framework import status
+from django.urls import reverse
+
+
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -67,6 +74,12 @@ class TopicViewset(viewsets.ModelViewSet):
     serializer_class = TopicSerializer
     pagination_class = CustomPagination
     permission_classes = [IsAuthenticated]
+
+class TextQuestionViewset(viewsets.ModelViewSet):
+    queryset = TextQuestion.objects.all()
+    serializer_class = TextQuestionSerializer
+    pagination_class = CustomPagination
+    permission_classes = [IsAuthenticated]
    
 
 @login_required
@@ -96,6 +109,8 @@ def add_topic(request):
     else:
         form = TopicForm()
     return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema hinzufügen'})
+
+
 @login_required
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -111,6 +126,8 @@ def edit_topic(request, topic_id):
     else:
         form = TopicForm(instance=topic)
     return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema bearbeiten'})
+
+
 @login_required
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -168,12 +185,15 @@ def edit_question(request, question_id):
         'title': 'Frage bearbeiten',
         'topic': question.topic_id
     })
+
+
 @login_required
 def delete_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
     topic_id = question.topic_id.topic_id
     question.delete()
     return redirect('topic_questions', topic_id=topic_id)
+
 
 @login_required
 def dashboard(request):
@@ -187,11 +207,14 @@ def dashboard(request):
         'latest_topics': latest_topics,
     })
 
+
 @require_POST
 def logout_view(request):
     logout(request)  # This removes the session
     messages.success(request, "Sie wurden erfolgreich abgemeldet.")
     return redirect('login')  # or use 'home' or a custom page
+
+
 
 @login_required
 def toggle_topic_visibility(request, topic_id):
@@ -199,7 +222,6 @@ def toggle_topic_visibility(request, topic_id):
     topic.visible = not topic.visible
     topic.save()
     return redirect('topics_list')
-
 
 
 class LoginView(APIView):
@@ -212,6 +234,7 @@ class LoginView(APIView):
             token, created = Token.objects.get_or_create(user=user)
             return Response({"token": token.key})
         return Response({"error": "Invalid credentials"}, status=400)
+    
         
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -223,6 +246,7 @@ def get_current_user(request):
         "last_name": user.last_name
     }]
     return Response(data, status=status.HTTP_200_OK)
+
 
 class SubmitResultView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -236,18 +260,56 @@ class SubmitResultView(APIView):
             return Response({'status': 'success'}, status=201)
         return Response(serializer.errors, status=400)
 
+from django.db.models import Q
 
 @login_required
 def score_list_view(request):
-    results = QuizResult.objects.prefetch_related("wrong_answers", "user").order_by("-created_at")
+    results = QuizResult.objects.select_related("user", "session").prefetch_related("wrong_answers").order_by("-created_at")
+
     for result in results:
-     result.created_at = localtime(result.created_at + timedelta(hours=2))  # Konvertiere in lokale Zeit
-    # Berechne das Löschdatum: 60 Tage nach Erstellung
-     result.deletion_date = localtime(result.created_at + timedelta(days=60))
+        # Lokale Zeit und Löschdatum
+        result.created_at = localtime(result.created_at + timedelta(hours=2))
+        result.deletion_date = localtime(result.created_at + timedelta(days=60))
+
+        # Textantworten der Session laden
+        session_id = result.session.id if result.session else None
+        if session_id:
+            text_answers = TextAnswer.objects.filter(session_id=session_id).select_related("question")
+        else:
+            text_answers = TextAnswer.objects.none()
+
+        # Berechnung der Textantwort-Scores & MaxScores
+        total_text_score = 0
+        total_text_max_score = 0
+        for ans in text_answers:
+            if ans.score is not None:
+                total_text_score += ans.score
+            total_text_max_score += ans.question.max_score  # 🔑 Holt max_score von jeder Frage
+
+        # Werte in result-Objekt anhängen (damit Template zugreifen kann)
+        result.text_answers = text_answers
+        result.pending_count = text_answers.filter(score__isnull=True).count()
+        result.total_text_score = total_text_score
+
+        #  Gesamtberechnung:
+        quiz_score = result.score or 0
+        quiz_max = result.maxsize or 0
+
+        total_score = quiz_score + total_text_score
+        total_max = quiz_max + total_text_max_score
+
+        # Werte anfügen
+        result.total_score = total_score
+        result.total_max_score = total_max
+        result.session_id = session_id
+
     return render(request, "score_list.html", {"results": results})
 
-#Excel Datei Herunterladen 
 
+
+
+
+#Excel Datei Herunterladen 
 #https://openpyxl.readthedocs.io/en/stable/
 from openpyxl.styles import Font, PatternFill
 
@@ -265,17 +327,20 @@ def download_result_excel(request, id):
         return HttpResponse("Nicht erlaubt", status=403)
 
     result = get_object_or_404(QuizResult, id=id)
+    session = result.session  # damit wir die dazugehörigen TextAnswers bekommen
 
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Quiz Ergebnis"
+    sheet.title = "Testergebnis"
 
     bold_font = Font(bold=True)
+
+    # === Kopfbereich ===
     sheet["A1"] = "Benutzer"
-    sheet["B1"] = result.user.username
+    sheet["B1"] = result.user.get_full_name() or result.user.username
     sheet["A2"] = "Thema"
     sheet["B2"] = str(result.topic)
-    sheet["A3"] = "Punkte"
+    sheet["A3"] = "Gesamtpunkte"
     sheet["B3"] = result.score
     sheet["A4"] = "Datum"
     sheet["B4"] = result.created_at.strftime('%d.%m.%Y %H:%M')
@@ -285,20 +350,37 @@ def download_result_excel(request, id):
 
     sheet.append([])
 
-    sheet.append(["Frage", "Richtige Antwort", "Gegebene Antwort"])
+    # === MCQ-Falsche Antworten ===
+    sheet.append(["MCQ - Frage", "Richtige Antwort", "Gegebene Antwort"])
     last_row = sheet.max_row
     for col in range(1, 4):
         sheet.cell(row=last_row, column=col).font = bold_font
 
-    for wrong in result.wrong_answers.all():
-        sheet.append([
-            wrong.question,
-            wrong.correct_answer,
-            wrong.selected_option
-        ])
+    if result.wrong_answers.exists():
+        for wrong in result.wrong_answers.all():
+            sheet.append([wrong.question, wrong.correct_answer, wrong.selected_option])
+    else:
+        sheet.append(["Alle Fragen korrekt beantwortet 🎉", "", ""])
+
+    # === Textantworten ===
+    if session:
+        text_answers = session.text_answers.select_related("question").all()
+        if text_answers.exists():
+            sheet.append([])  # Leerzeile
+            sheet.append(["TEXTFRAGEN", "Bewertung", "Feedback"])
+            last_row = sheet.max_row
+            for col in range(1, 4):
+                sheet.cell(row=last_row, column=col).font = bold_font
+
+            for ans in text_answers:
+                sheet.append([
+                    ans.question.question_text,
+                    ans.score if ans.score is not None else "Noch nicht bewertet",
+                    ans.feedback or ""
+                ])
 
     response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response['Content-Disposition'] = f'attachment; filename="{result.user.username}_result_{result.id}.xlsx"'
 
@@ -306,18 +388,8 @@ def download_result_excel(request, id):
     return response
 
 
-from openpyxl import Workbook
-from django.http import HttpResponse
-from .models import QuizResult
-from openpyxl.styles import Font, PatternFill
-
-from django.contrib.admin.views.decorators import staff_member_required
 @staff_member_required
 def download_all_results_excel(request):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill
-    from django.http import HttpResponse
-    from .models import QuizResult
 
     workbook = Workbook()
     sheet = workbook.active
@@ -388,13 +460,178 @@ def download_all_results_excel(request):
 
 
 @login_required
+@transaction.atomic  # alles oder nichts – sichert Datenkonsistenz
 def delete_result(request, id):
-    result = get_object_or_404(QuizResult, id=id)
+    result = get_object_or_404(QuizResult.objects.select_related("session"), id=id)
+    session = result.session  # die zugehörige TestSession
+
+    #  WrongAnswers löschen (gehören direkt zu QuizResult)
+    result.wrong_answers.all().delete()
+
+    #  TextAnswers der gleichen Session löschen (wenn Session existiert)
+    if session:
+        session.text_answers.all().delete()
+        session.delete()  # Session selbst löschen
+
+    # QuizResult löschen
     result.delete()
-    return redirect('score_list_view')
+
+    return redirect("score_list_view")
+
+
+from django.db import transaction
+
+@login_required
+@transaction.atomic
+def delete_all_result(request):
+    #  Alle Sessions zuerst löschen (löscht automatisch TextAnswers, wenn on_delete=CASCADE)
+    from .models import TestSession, QuizResult  # Import hier, um Zirkularimporte zu vermeiden
+    TestSession.objects.all().delete()
+    # alle QuizResults löschen (löscht WrongAnswers per on_delete=CASCADE)
+    QuizResult.objects.all().delete()
+
+    return redirect("score_list_view")
+
+
+@staff_member_required
+def text_answers_list(request):
+    session_id = request.GET.get("session")
+    if not session_id:
+        return HttpResponse("Session nicht angegeben", status=400)
+
+    answers = TextAnswer.objects.filter(session_id=session_id).select_related("question", "user")
+    return render(request, "text_answers_list.html", {
+        "answers": answers,
+        "session_id": session_id
+    })
+
+
+@staff_member_required
+def review_text_answer(request, answer_id):
+    answer = get_object_or_404(TextAnswer, pk=answer_id)
+    session_id = request.GET.get("session") or request.POST.get("session")
+
+    if not session_id:
+        return HttpResponse("Session nicht angegeben", status=400)
+
+    if request.method == "POST":
+        score = request.POST.get("score")
+        feedback = request.POST.get("feedback")
+        max_score = answer.question.max_score
+        if score:
+            score_val = float(score)
+            answer.score = min(score_val, max_score)  # Prevent exceeding max score
+        answer.feedback = feedback
+        answer.is_reviewed = True
+        answer.save()
+
+        return redirect(f"{reverse('text_answers_list')}?session={session_id}")
+
+    return render(request, "review_text_answer.html", {"answer": answer})
+
+
+
+class TextQuestionByTopicNameView(generics.ListAPIView):
+    serializer_class = TextQuestionSerializer
+
+    def get_queryset(self):
+        topic_name = self.request.query_params.get('topic')
+        if topic_name:
+            return TextQuestion.objects.filter(topic__topic=topic_name)
+        return TextQuestion.objects.none()
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import TextQuestion, TextAnswer, TestSession, Topics
+
+class SubmitTextAnswerAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        question_id = request.data.get("question")
+        answer_text = request.data.get("answer_text")
+        session_id = request.data.get("session")  # 🔑 New: session ID from Android
+        topic_name = request.data.get("topic")       # optional fallback to auto-create session
+
+        if not question_id or not answer_text:
+            return Response({"error": "question and answer_text are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            question = TextQuestion.objects.get(id=question_id)
+        except TextQuestion.DoesNotExist:
+            return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # 🔑 Ensure session exists (create one if none provided)
+        session = None
+        if session_id:
+            session = TestSession.objects.filter(id=session_id, user=request.user).first()
+
+        if not session:
+            if topic_name:
+                try:
+                    topic = Topics.objects.get(topic=topic_name)
+                except Topics.DoesNotExist:
+                    return Response({"error": "Topic not found"}, status=status.HTTP_404_NOT_FOUND)
+                session = TestSession.objects.create(user=request.user, topic=topic)
+            else:
+                return Response({"error": "Session not found and no topic provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Speichern der Textantwort
+        text_answer = TextAnswer.objects.create(
+            user=request.user,
+            question=question,
+            answer_text=answer_text,
+            session=session  # ✅ Link to session
+        )
+
+        return Response(
+            {"success": "Answer saved", "session_id": session.id},  # 🔑 Send back session ID
+            status=status.HTTP_201_CREATED
+        )
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def start_test_session(request):
+    topic_name = request.data.get("topic")
+    topic = Topics.objects.filter(topic=topic_name).first()
+    if not topic:
+        return Response({"error": "Topic not found"}, status=404)
+
+    session = TestSession.objects.create(user=request.user, topic=topic)
+    return Response({"session_id": session.id})
 
 
 @login_required
-def delete_all_result(request):
-    QuizResult.objects.all().delete()
+def delete_session(request, session_id):
+    session = get_object_or_404(TestSession, pk=session_id)
+
+    # Optional: Nur Admins oder Besitzer dürfen löschen
+    if not request.user.is_staff and session.user != request.user:
+        return HttpResponse("Nicht erlaubt", status=403)
+
+    session.delete()
     return redirect('score_list_view')
+
+
+@staff_member_required
+def choose_topic_type(request):
+    """Zeigt Auswahl zwischen MCQ, Text oder kombiniertem Test."""
+    if request.method == "POST":
+        choice = request.POST.get("choice")
+        if choice:
+            # Weiterleitung zu deiner normalen Topic-Create-View
+            return redirect(f"{reverse('create_topic')}?type={choice}")
+    return render(request, "choose_topic_type.html")
+
+
+def create_topic(request):
+    topic_type = request.GET.get("type", "mcq")  # default = mcq
+    # topic_type kannst du ins Template geben, um z. B. spezielle Felder anzuzeigen
+    return render(request, "create_topic.html", {"topic_type": topic_type})

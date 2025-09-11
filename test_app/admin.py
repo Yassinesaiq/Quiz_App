@@ -16,6 +16,10 @@ class TopicAdmin(admin.ModelAdmin):
     def make_hidden(self, request, queryset):
         queryset.update(visible=False)
 
+
 admin.site.register(Questions)
 admin.site.register(QuizResult)
 admin.site.register(WrongAnswer)
+admin.site.register(TextAnswer)
+admin.site.register(TextQuestion)
+admin.site.register(TestSession)
