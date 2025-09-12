@@ -47,3 +47,15 @@ class QuestionForm(forms.ModelForm):
                 "Die Antwort muss einer der vier Optionen entsprechen."
             )
         return answer
+
+from .models import TextQuestion
+
+class TextQuestionForm(forms.ModelForm):
+    class Meta:
+        model = TextQuestion
+        fields = ("question_text", "max_score", "topic")  # passe an deine Felder an
+        widgets = {
+            "question_text": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "max_score": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": 0.5}),
+            "topic": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }

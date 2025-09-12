@@ -19,6 +19,10 @@ class Questions(models.Model):
     def __str__(self):
         return f"{self.question} - Topic : {self.topic_id.topic}"
 
+class TopicType(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    def __str__(self):
+        return self.name
 
 class Topics(models.Model):
     topic_id = models.AutoField(db_column='topic_id', primary_key=True)
@@ -28,6 +32,7 @@ class Topics(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     visible = models.BooleanField(default=True)
+    topic_type = models.ForeignKey(TopicType,on_delete=models.CASCADE)  # Neu: Unterscheidungsthema für Textfragen  
 
     class Meta:
         managed = True
@@ -35,6 +40,7 @@ class Topics(models.Model):
     
     def __str__(self):
         return f"{self.topic} "
+    
 
 class TestSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="test_sessions")

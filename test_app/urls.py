@@ -68,7 +68,10 @@ urlpatterns = [
     path("api/submit-text-answer/", SubmitTextAnswerAPI.as_view(), name="submit_text_answer"),
     path("api/start-session/", views.start_test_session, name="start_test_session"),
     path("session/<int:session_id>/delete/", views.delete_session, name="delete_session"),
-    path("topics/choose-type/", views.choose_topic_type, name="choose_topic_type")
+    path("topics/choose-type/", views.choose_topic_type, name="choose_topic_type"),
+    path('topics/<int:topic_id>/add-text-questions/', views.add_text_questions_to_topic, name='add_text_questions_to_topic'),
+    path("topics/create-text/", views.create_text_topic, name="create_text_topic"),
+
 
 
     

@@ -533,21 +533,14 @@ def review_text_answer(request, answer_id):
 
 class TextQuestionByTopicNameView(generics.ListAPIView):
     serializer_class = TextQuestionSerializer
-
+ 
     def get_queryset(self):
         topic_name = self.request.query_params.get('topic')
         if topic_name:
             return TextQuestion.objects.filter(topic__topic=topic_name)
         return TextQuestion.objects.none()
+    
 
-
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from .models import TextQuestion, TextAnswer, TestSession, Topics
 
 class SubmitTextAnswerAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -555,7 +548,7 @@ class SubmitTextAnswerAPI(APIView):
     def post(self, request):
         question_id = request.data.get("question")
         answer_text = request.data.get("answer_text")
-        session_id = request.data.get("session")  # 🔑 New: session ID from Android
+        session_id = request.data.get("session")  #  New: session ID from Android
         topic_name = request.data.get("topic")       # optional fallback to auto-create session
 
         if not question_id or not answer_text:
@@ -566,7 +559,7 @@ class SubmitTextAnswerAPI(APIView):
         except TextQuestion.DoesNotExist:
             return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # 🔑 Ensure session exists (create one if none provided)
+        #  Ensure session exists (create one if none provided)
         session = None
         if session_id:
             session = TestSession.objects.filter(id=session_id, user=request.user).first()
@@ -586,11 +579,11 @@ class SubmitTextAnswerAPI(APIView):
             user=request.user,
             question=question,
             answer_text=answer_text,
-            session=session  # ✅ Link to session
+            session=session  #  Link to session
         )
 
         return Response(
-            {"success": "Answer saved", "session_id": session.id},  # 🔑 Send back session ID
+            {"success": "Answer saved", "session_id": session.id},  #  Send back session ID
             status=status.HTTP_201_CREATED
         )
 
@@ -620,18 +613,60 @@ def delete_session(request, session_id):
     return redirect('score_list_view')
 
 
+
 @staff_member_required
 def choose_topic_type(request):
-    """Zeigt Auswahl zwischen MCQ, Text oder kombiniertem Test."""
     if request.method == "POST":
         choice = request.POST.get("choice")
-        if choice:
-            # Weiterleitung zu deiner normalen Topic-Create-View
-            return redirect(f"{reverse('create_topic')}?type={choice}")
+        if choice == "mcq":
+            return redirect("add_topic")  # <-- hier deine aktuelle MCQ-Create-View
+        elif choice == "text":
+            return redirect("create_text_topic")
+        elif choice == "mixed":
+            return redirect("create_mixed_topic")
     return render(request, "choose_topic_type.html")
 
 
-def create_topic(request):
-    topic_type = request.GET.get("type", "mcq")  # default = mcq
-    # topic_type kannst du ins Template geben, um z. B. spezielle Felder anzuzeigen
-    return render(request, "create_topic.html", {"topic_type": topic_type})
+
+from django.forms import modelform_factory, inlineformset_factory
+
+@staff_member_required
+def create_text_topic(request):
+    TopicForm = modelform_factory(Topics, fields=["topic", "description", "visible"])
+    
+    if request.method == "POST":
+        topic_form = TopicForm(request.POST)
+        if topic_form.is_valid():
+            topic = topic_form.save(commit=False)
+            topic.created_by = request.user
+            topic.created_at = timezone.now()+ timedelta(hours=2)
+            topic.save()
+            messages.success(request, "Textfragen-Thema erfolgreich erstellt.")
+            return redirect("topics_list")
+    else:
+        topic_form = TopicForm()        
+    return render(request, "add_edit_topic.html", {"topic_form": topic_form, 'title': 'Thema hinzufügen'})
+
+ 
+@staff_member_required
+def add_text_questions_to_topic(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+    TextQuestionFormSet = inlineformset_factory(
+        Topics, TextQuestion, form=TextQuestionForm,
+        fields=("question_text", "max_score", "topic"),
+        extra=1, can_delete=True
+    )
+
+    if request.method == "POST":
+        formset = TextQuestionFormSet(request.POST, request.FILES, instance=topic)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "Textfragen gespeichert.")
+            return redirect("topics_list")
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler.")
+    else:
+        formset = TextQuestionFormSet(instance=topic)
+
+    return render(request, "create_text_questions.html", {"formset": formset, "topic": topic})
+

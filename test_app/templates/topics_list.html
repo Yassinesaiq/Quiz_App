@@ -65,6 +65,7 @@
         width: 100%;
         overflow: hidden;
         border-radius: inherit;
+        position: relative;
     }
 
     .card-header .image-mask img {
@@ -72,6 +73,13 @@
         height: 100%;
         object-fit: cover;
         display: block;
+    }
+
+    .topic-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 30px;
     }
 
     .card-content {
@@ -150,6 +158,27 @@
         -webkit-text-fill-color: transparent;
         margin-bottom: 40px;
     }
+    .topic-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    display: flex;
+    gap: 5px;                /* space between multiple icons */
+    align-items: center;
+    justify-content: center;
+}
+
+.topic-icon span {
+    display: inline-block;
+    background-color: #fff;  /* white background */
+    padding: 4px 6px;        /* some padding around emoji */
+    border-radius: 6px;      /* rounded corners */
+    font-size: 20px;         /* adjust emoji size */
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);  /* optional subtle shadow */
+    cursor: default;
+}
+
 </style>
 
 <script>
@@ -186,8 +215,22 @@
                     {% else %}
                     <img src="{% static 'default-image.png' %}" alt="Default">
                     {% endif %}
+
+                    <!-- Topic type icon -->
+                    <span class="topic-icon">
+                        {% if topic.topic_type.name == "MCQ" %}
+                            <span title="Multiple Choice">📝MCQ</span>
+                        {% elif topic.topic_type.name == "Textfrage" %}
+                            <span title="Textfrage">✏️Text</span>
+                        {% elif topic.topic_type.name == "MCQ + Text" %}
+                            <span title="Multiple Choice">📝</span>
+                            <span title="Textfrage">✏️</span>
+                        {% endif %}
+                    </span>
+
                 </div>
             </div>
+
             <div class="card-content">
                 <h5 class="card-title">{{ topic.topic }}</h5>
                 <p class="card-text">{{ topic.description|truncatechars:100 }}</p>
