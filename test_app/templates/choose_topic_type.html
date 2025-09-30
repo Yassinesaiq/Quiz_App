@@ -4,36 +4,42 @@
     .card-grid {
         display: flex;
         justify-content: center;
-        gap: 30px;
+        gap: 40px;
         margin-top: 40px;
         flex-wrap: wrap;
     }
     .type-card {
-        width: 280px;
+        width: 350px;
         background: #fff;
-        border-radius: 16px;
-        box-shadow: rgba(0, 0, 0, 0.15) 0px 10px 20px;
+        border-radius: 20px;
+        box-shadow: rgba(0, 0, 0, 0.15) 0px 12px 24px;
         text-align: center;
-        padding: 20px;
+        padding: 40px 30px;
         cursor: pointer;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 3px solid #ff2a0c;
     }
     .type-card:hover {
-        transform: translateY(-5px);
-        box-shadow: rgba(0, 0, 0, 0.25) 0px 15px 25px;
+        transform: translateY(-8px) scale(1.03);
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 18px 32px;
+        border-color: #37018d;
+        color:rgba(0, 0, 0, 0.15);
     }
     .type-card h3 {
-        margin-top: 15px;
-        color: #37018d;
+        margin-top: 20px;
+        color: #ff2a0c;
         font-weight: bold;
+        font-size: 2rem;
     }
     .type-card p {
-        font-size: 14px;
+        font-size: 1.1rem;
         color: #555;
+        margin-top: 10px;
     }
     .type-card i {
-        font-size: 40px;
+        font-size: 60px;
         color: #37018d;
+        margin-bottom: 10px;
     }
 </style>
 
@@ -43,20 +49,21 @@
 <form method="post">
     {% csrf_token %}
     <div class="card-grid">
-        <button type="submit" name="choice" value="mcq" class="type-card">
-            <i class="bi bi-list-task"></i>
+        <button type="submit" name="choice" value="MCQ" class="type-card">
+            <i class="bi bi-ui-checks-grid"></i>
             <h3>MCQ</h3>
             <p>Mehrfachauswahlfragen</p>
         </button>
 
-        <button type="submit" name="choice" value="text" class="type-card">
-            <i class="bi bi-chat-left-text"></i>
+        <button type="submit" name="choice" value="Textfrage" class="type-card">
+            <i class="bi bi-file-richtext"></i>
             <h3>Textfrage</h3>
             <p>Offene Fragen mit manueller Bewertung</p>
         </button>
 
-        <button type="submit" name="choice" value="mixed" class="type-card">
-            <i class="bi bi-shuffle"></i>
+        <button type="submit" name="choice" value="MCQ + Text" class="type-card">
+            <i class="bi bi-ui-checks-grid"></i>
+            <i class="bi bi-file-richtext"></i>
             <h3>MCQ + Text</h3>
             <p>Kombination aus MCQ und Textfragen</p>
         </button>

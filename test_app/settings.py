@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'test_app',
     'rest_framework',
     'rest_framework.authtoken',
+    "widget_tweaks"
 
 ]
 

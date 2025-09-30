@@ -34,13 +34,15 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class TopicSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    topic_type = serializers.CharField(source='topic_type.name')
     class Meta:
         model = Topics
-        fields = ['topic_id','topic','description', 'image_url']
+        fields = ['topic_id','topic','description', 'image_url','topic_type']
     def get_image_url(self, obj):
         if obj.configuration_img:
             return self.context['request'].build_absolute_uri(obj.configuration_img.url)
         return None
+  
 
 class WrongAnswerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,7 +76,7 @@ from .models import TextQuestion
 class TextQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TextQuestion
-        fields = ['id', 'topic', 'question_text']  # Falls du mehr Felder hast, hier hinzufügen
+        fields = ['id', 'topic', 'question_text','max_score']  # Falls du mehr Felder hast, hier hinzufügen
 
 class TextAnswerSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">✏️ Textfrage bearbeiten</h2>
+
+    <!-- Globale Fehler -->
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post" class="card shadow-sm p-4">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field|add_class:"form-control" }}
+                {% if field.help_text %}
+                    <div class="form-text text-muted">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                    <div class="text-danger small">
+                        {{ field.errors }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="d-flex justify-content-between mt-4">
+            <button type="submit" class="btn btn-primary">
+                💾 Speichern
+            </button>
+
+            <!-- Dynamische Weiterleitung je nach TopicType -->
+            {% if question.topic.topic_type.name == "Textfrage" %}
+                <a href="{% url 'view_text_questions_of_topic' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+            {% elif question.topic.topic_type.name == "MCQ" %}
+                <a href="{% url 'topic_questions' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+            {% elif question.topic.topic_type.name == "MCQ+Text" %}
+                <a href="{% url 'view_mcq_text_questions' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+            {% else %}
+                <a href="{% url 'topics_list' %}" class="btn btn-secondary">🔙 Abbrechen</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

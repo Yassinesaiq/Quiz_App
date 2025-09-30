@@ -19,9 +19,8 @@
   }
 
   .container {
-    max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
+    ;
   }
 
   h1 {
@@ -50,7 +49,7 @@
   }
 
   .card-primary {
-    background: linear-gradient(135deg, #1a6bc7ff, #0b61bdff);
+    background: linear-gradient(135deg, #fb5b3fff, #ff2600ff);
   }
 
   .card-success {
@@ -89,23 +88,6 @@
     background-color: #ddd;
   }
 
-  a.btn-outline-primary {
-    display: inline-block;
-    background: transparent;
-    border: 2px solid #007bff;
-    color: #007bff;
-    padding: 10px 25px;
-    border-radius: 50px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    margin-bottom: 30px;
-  }
-
-  a.btn-outline-primary:hover {
-    background-color: #007bff;
-    color: white;
-  }
 
   .list-group {
     list-style: none;
@@ -146,22 +128,36 @@
 </style>
 
 <div class="container mt-5">
-  <h1>Kontrolltafel</h1>
 
+  <div class="row mb-4" style="justify-content: center;">
+    <div class="col-12" >
+      <div class="card" style="background: linear-gradient(135deg, #f8f9fa, #c7b5d5ff); color: #431569ff; border-radius: 15px; box-shadow: 0 4px 16px rgba(67,21,105,0.08); text-align: center; padding: 30px 20px; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: center;">
+          <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+            <circle cx="40" cy="40" r="38" fill="#431569ff" opacity="0.1"/>
+            <circle cx="40" cy="40" r="30" fill="#fb5b3fff" opacity="0.15"/>
+            <text x="40" y="48" text-anchor="middle" font-size="32" fill="#431569ff" font-family="Roboto, sans-serif" font-weight="700">👋🏻</text>
+          </svg>
+        </div>
+        <h2 style="font-weight: 900; margin-bottom: 10px;">Willkommen, {{ user.first_name }} {{ user.last_name }}!</h2>
+        <p style="font-size: 1.1rem; color: #616161;">Schön, dass du wieder da bist</p>
+      </div>
+    </div>
+  </div>
   <div class="row mb-4" style="display:flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
     <!-- Themen-Karte -->
-    <div class="card card-primary slide-card" style="flex: 1 1 300px; max-width: 45%;">
-      <div class="card-header">📚 Themen</div>
+    <div class="card card-primary slide-card" style="flex: 1 1 300px;">
+      <div class="card-header"><i class="bi bi-stack"></i>  Themen</div>
       <div class="card-body">
-        <h5 class="card-title">{{ topics_count }} Themen</h5>
+        <h5 class="card-title">{{ topics_count }}  Themen</h5>
         <p class="card-text">Verwalte die verfügbaren Quiz-Themen.</p>
         <a href="{% url 'topics_list' %}" class="btn-custom">Themen anzeigen</a>
       </div>
     </div>
 
     <!-- Ergebnisse-Karte -->
-    <div class="card card-success slide-card" style="flex: 1 1 300px; max-width: 45%;">
-      <div class="card-header">📊 Ergebnisse</div>
+    <div class="card card-success slide-card" style="flex: 1 1 300px; ">
+      <div class="card-header"><i class="bi bi-receipt"></i> Ergebnisse</div>
       <div class="card-body">
         <h5 class="card-title">{{ results_count }} gespeicherte Ergebnisse</h5>
         <p class="card-text">Analysiere und exportiere die Ergebnisse der Benutzer.</p>
@@ -170,13 +166,10 @@
     </div>
   </div>
 
-  <!-- Neues Thema hinzufügen -->
-  <a href="{% url 'choose_topic_type' %}" class="btn-outline-primary">➕ Neues Thema hinzufügen</a>
-
   <hr>
 
   <!-- Letzte Themen -->
-  <h3>🕓 Deine zuletzt erstellten Themen</h3>
+  <h3 style="color:#431569ff"><i class="bi bi-clock-history"></i> Deine zuletzt erstellten Themen</h3>
 
   {% if latest_topics %}
     <ul class="list-group mt-3">

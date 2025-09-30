@@ -150,13 +150,15 @@
     }
 
     h1.title {
-        text-align: center;
-        font-weight: 900;
-        font-size: 2.5rem;
-        background: linear-gradient(to right, #f77190ff, #300228ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 40px;
+
+    text-align: center;
+    font-weight: 900;
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    background: linear-gradient(to right, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
     }
     .topic-icon {
     position: absolute;
@@ -179,6 +181,25 @@
     cursor: default;
 }
 
+  a.btn-outline-primary {
+    
+    background: transparent;
+    border: 2px solid #431569ff;
+    color: #431569ff;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+
+  }
+
+  a.btn-outline-primary:hover {
+    background-color: #431569ff;
+    color: white;
+  }
+
+
 </style>
 
 <script>
@@ -200,9 +221,27 @@
         });
     });
 </script>
-
+<div class="container mb-4">
+    <form method="get" action="" class="d-flex flex-wrap justify-content-center align-items-center gap-3" style="background:#f8f9fa; border-radius: 16px; padding: 18px 24px; box-shadow: 0 4px 16px rgba(67,21,105,0.08);">
+        <label for="topic_type" class="form-label mb-0" style="font-weight: 700; color: #431569; font-size: 1.1rem;">
+            <i class="bi bi-funnel-fill" style="font-size: 1.3rem; vertical-align: middle; margin-right: 8px;"></i>
+            Filtern nach Typ:
+        </label>
+        <select name="topic_type" id="topic_type" class="form-select w-auto" style="border-radius: 8px; font-weight: 500; min-width: 140px;">
+            <option value="">Alle</option>
+            <option value="MCQ" {% if topic_type == "MCQ" %}selected{% endif %}>MCQ</option>
+            <option value="Textfrage" {% if topic_type == "Textfrage" %}selected{% endif %}>Textfrage</option>
+            <option value="MCQ + Text" {% if topic_type == "MCQ + Text" %}selected{% endif %}>MCQ + Text</option>
+        </select>
+        <button type="submit" class="btn btn-light" style="font-weight: 700; border-radius: 8px; box-shadow: 0 2px 8px rgba(67,21,105,0.12);">
+            <i class="bi bi-search"></i> Filtern
+        </button>
+        <!-- Neues Thema hinzufügen -->
+        <a href="{% url 'choose_topic_type' %}" class="btn-outline-primary ms-2"><i class="bi bi-plus-lg"></i> Neues Thema hinzufügen</a>
+    </form>
+</div>
 <div class="container mt-5">
-    <h1 class="title">Themen Liste</h1>
+
     <div class="card-grid">
         {% for topic in topics %}
         {% with forloop.counter0|add:"1"|divisibleby:4 as use_four %}
@@ -217,14 +256,14 @@
                     {% endif %}
 
                     <!-- Topic type icon -->
-                    <span class="topic-icon">
+                    <span  style="color: #431569ff" class="topic-icon">
                         {% if topic.topic_type.name == "MCQ" %}
-                            <span title="Multiple Choice">📝MCQ</span>
+                            <span title="Multiple Choice"><i class="bi bi-ui-checks"></i> MCQ</span>
                         {% elif topic.topic_type.name == "Textfrage" %}
-                            <span title="Textfrage">✏️Text</span>
+                            <span title="Textfrage"><i class="bi bi-card-text"></i> Text</span>
                         {% elif topic.topic_type.name == "MCQ + Text" %}
-                            <span title="Multiple Choice">📝</span>
-                            <span title="Textfrage">✏️</span>
+                            <span title="Multiple Choice"><i class="bi bi-ui-checks"></i></span>
+                            <span title="Textfrage"><i class="bi bi-card-text"></i></span>
                         {% endif %}
                     </span>
 

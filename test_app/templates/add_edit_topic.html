@@ -1,17 +1,29 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title|default:"Neues Thema erstellen" }}{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="card shadow">
-        <div class="card-header text-black" style="background:linear-gradient(135deg, #ddd6f3, #faaca8)">
-            <h4 class="mb-0">{{ title }}</h4>
+        <div class="card-header text-black" style="background:linear-gradient(135deg, #ddd6f3, #610079);">
+            <h4 class="mb-0">
+                {% if topic_type %}
+                    Thema erstellen – <span class="text-primary">{{ topic_type.name }}</span>
+                {% else %}
+                    Neues Thema erstellen
+                {% endif %}
+            </h4>
         </div>
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
+
+                {% if topic_type %}
+                    <!-- Hidden Input für TopicType-ID -->
+                    <input type="hidden" name="type_id" value="{{ topic_type.id }}">
+                {% endif %}
+
                 {% for field in form %}
                     <div class="mb-3">
                         <label class="form-label fw-semibold">{{ field.label }}</label>
@@ -27,10 +39,10 @@
 
                 <div class="d-flex justify-content-between">
                     <button type="submit" class="btn btn-success">
-                        💾 Speichern
+                        <i class="bi bi-save"></i> Speichern
                     </button>
                     <a href="{% url 'topics_list' %}" class="btn btn-secondary">
-                        🔙 Abbrechen
+                        <i class="bi bi-x-square"></i> Abbrechen
                     </a>
                 </div>
             </form>

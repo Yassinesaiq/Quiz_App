@@ -14,7 +14,7 @@
     <p class="text-muted">{{ topic.description }}</p>
 
     <!-- Bouton Ajouter une nouvelle question -->
-    <a href="{% url 'add_question' topic_id=topic.topic_id %}" class="btn btn-success mb-3">➕ Neue Frage hinzufügen</a>
+    <a href="{% url 'add_question' topic_id=topic.topic_id %}" class="btn btn-success mb-3"><i class="bi bi-plus-square"></i> Neue Frage hinzufügen</a>
 
     <ul class="list-group">
         {% for question in questions %}
@@ -23,8 +23,8 @@
                     {{ question.question|truncatechars:100 }}
                 </div>
                 <div>
-                    <a href="{% url 'edit_question' question_id=question.question_id %}" class="btn btn-sm btn-warning">✏️ Bearbeiten</a>
-                    <a href="{% url 'delete_question' question_id=question.question_id %}" class="btn btn-sm btn-danger" onclick="return confirm('Bist du sicher?')">🗑️ Löschen</a>
+                    <a href="{% url 'edit_question' question_id=question.question_id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                    <a href="{% url 'delete_question' question_id=question.question_id %}" class="btn btn-sm btn-danger" onclick="return confirm('Bist du sicher?')"><i class="bi bi-trash2-fill"></i> Löschen</a>
                 </div>
             </li>
         {% empty %}

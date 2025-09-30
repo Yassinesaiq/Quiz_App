@@ -31,6 +31,7 @@ from .serializers import TextQuestionSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from django.urls import reverse
+from django.forms import modelform_factory, inlineformset_factory
 
 
 
@@ -84,58 +85,107 @@ class TextQuestionViewset(viewsets.ModelViewSet):
 
 @login_required
 def topics_list(request):
-    topics = Topics.objects.all()
-    return render(request, 'topics_list.html', {'topics': topics})
+    topic_type = request.GET.get('topic_type')
+    if topic_type:
+        topics = Topics.objects.filter(topic_type__name=topic_type)
+    else:
+        topics = Topics.objects.all()
+    return render(request, 'topics_list.html', {'topics': topics, 'topic_type': topic_type})
 
 @login_required
 def topic_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     questions = Questions.objects.filter(topic_id=topic)
-    return render(request, 'topic_questions.html', {'topic': topic, 'questions': questions})
-
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+    if topic_type == "Textfrage":
+        return redirect("view_text_questions_of_topic", topic_id=topic.pk)
+    elif topic_type == "MCQ + Text":
+        # Replace 'mcq_text_question_view' with your actual view name for MCQ + Text
+        return redirect("view_mcq_text_questions", topic_id=topic.pk)
+    return render(request, 'topic_questions.html', {
+        'topic': topic,
+        'questions': questions,
+        'topic_type': topic_type
+    })
 
 # ---------------- Topics ---------------- #
 @login_required
 def add_topic(request):
+    #  topic_type VORHER initialisieren, damit es immer existiert
+    topic_type = None
+    type_id = request.GET.get("type_id")
+    if type_id:
+        try:
+            topic_type = TopicType.objects.get(id=type_id)
+        except TopicType.DoesNotExist:
+            topic_type = None
+
     if request.method == "POST":
         form = TopicForm(request.POST, request.FILES)
         if form.is_valid():
             topic = form.save(commit=False)
             topic.created_by = request.user
-            topic.created_at = timezone.now()+ timedelta(hours=2)
+            topic.created_at = timezone.now() + timedelta(hours=2)
+            if topic_type:
+                topic.topic_type = topic_type  #Type speichern
             topic.save()
             form.save()
             return redirect('topics_list')
     else:
         form = TopicForm()
-    return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema hinzufügen'})
+
+    return render(
+        request,
+        'add_edit_topic.html',
+        {
+            'form': form,
+            'title': 'Thema hinzufügen',
+            'topic_type': topic_type,  # immer gesetzt (None wenn nicht gefunden)
+        }
+    )
 
 
 @login_required
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
+    topic_type = topic.topic_type  #  Typ des Themas beibehalten
+
     if request.method == "POST":
         form = TopicForm(request.POST, request.FILES, instance=topic)
         if form.is_valid():
             topic = form.save(commit=False)
             topic.created_by = request.user
-            topic.created_at = timezone.now()+ timedelta(hours=2)
+            topic.created_at = timezone.now() + timedelta(hours=2)
+            topic.topic_type = topic_type  #  Sicherstellen, dass Typ nicht verloren geht
             topic.save()
-            form.save()
             return redirect('topics_list')
     else:
         form = TopicForm(instance=topic)
-    return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema bearbeiten'})
+
+    return render(
+        request,
+        'add_edit_topic.html',
+        {
+            'form': form,
+            'title': 'Thema bearbeiten',
+            'topic_type': topic_type  #  Im Template verfügbar
+        }
+    )
 
 
 @login_required
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     with transaction.atomic():
-        # alle fragen löschen 
+        #  Alle MCQ-Fragen löschen
         Questions.objects.filter(topic_id=topic).delete()
-        # dann Thema löschen
+
+        #  Alle Textfragen löschen (falls vorhanden)
+        TextQuestion.objects.filter(topic=topic).delete()
+
+        #  Danach das Thema selbst löschen
         topic.delete()
+
     return redirect('topics_list')
 
 
@@ -143,26 +193,37 @@ def delete_topic(request, topic_id):
 @login_required
 def add_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+    if topic_type == "Textfrage":
+        return redirect("add_text_questions_to_topic", topic_id=topic.pk)
+    if topic_type == "MCQ + Text":
+        return redirect("add_mcq_text_question_view", topic_id=topic.pk)
 
-    if request.method == 'POST':
+    #  Standard: MCQ-Formular
+    if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, current_topic=topic)
         if form.is_valid():
             question = form.save(commit=False)
             question.topic_id = topic
             question.save()
 
-            if 'save_continue' in request.POST:
-                return redirect('add_question', topic_id=topic.pk)  # neue Frage zum gleichen Thema
+            if "save_continue" in request.POST:
+                return redirect("add_question", topic_id=topic.pk)  # weitere MCQ-Frage
             else:
-                return redirect('topic_questions', topic_id=topic.pk)  # zurück zur Übersicht
+                return redirect("topic_questions", topic_id=topic.pk)  # zurück zur Übersicht
     else:
         form = QuestionForm(current_topic=topic)
 
-    return render(request, 'add_edit_question.html', {
-        'form': form,
-        'title': f'Frage hinzufügen zu: {topic.topic}',
-        'topic': topic
-    })
+    return render(
+        request,
+        "add_edit_question.html",
+        {
+            "form": form,
+            "title": f"MCQ-Frage hinzufügen zu: {topic.topic}",
+            "topic": topic,
+            "topic_type": topic_type,
+        },
+    )
 
 
 
@@ -179,7 +240,6 @@ def edit_question(request, question_id):
         form = QuestionForm(instance=question)
         logger = logging.getLogger(__name__)
         logger.info(question.des_img)
-
     return render(request, 'add_edit_question.html', {
         'form': form,
         'title': 'Frage bearbeiten',
@@ -244,6 +304,7 @@ def get_current_user(request):
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name
+        
     }]
     return Response(data, status=status.HTTP_200_OK)
 
@@ -264,62 +325,51 @@ from django.db.models import Q
 
 @login_required
 def score_list_view(request):
-    results = QuizResult.objects.select_related("user", "session").prefetch_related("wrong_answers").order_by("-created_at")
+    sessions = TestSession.objects.select_related("user", "topic__topic_type") \
+        .prefetch_related("quiz_results__wrong_answers", "text_answers__question") \
+        .order_by("-started_at")
 
-    for result in results:
-        # Lokale Zeit und Löschdatum
-        result.created_at = localtime(result.created_at + timedelta(hours=2))
-        result.deletion_date = localtime(result.created_at + timedelta(days=60))
+    results = []
+    for session in sessions:
+        quiz_result = session.quiz_results.first()
+        text_answers = session.text_answers.all()
 
-        # Textantworten der Session laden
-        session_id = result.session.id if result.session else None
-        if session_id:
-            text_answers = TextAnswer.objects.filter(session_id=session_id).select_related("question")
-        else:
-            text_answers = TextAnswer.objects.none()
+        # MCQ-Teil
+        quiz_score = quiz_result.score if quiz_result else 0
+        quiz_max = quiz_result.maxsize if quiz_result else 0
 
-        # Berechnung der Textantwort-Scores & MaxScores
-        total_text_score = 0
-        total_text_max_score = 0
-        for ans in text_answers:
-            if ans.score is not None:
-                total_text_score += ans.score
-            total_text_max_score += ans.question.max_score  # 🔑 Holt max_score von jeder Frage
+        # Text-Teil
+        total_text_score = sum(a.score for a in text_answers if a.score is not None)
+        total_text_max_score = sum(a.question.max_score for a in text_answers)
 
-        # Werte in result-Objekt anhängen (damit Template zugreifen kann)
-        result.text_answers = text_answers
-        result.pending_count = text_answers.filter(score__isnull=True).count()
-        result.total_text_score = total_text_score
-
-        #  Gesamtberechnung:
-        quiz_score = result.score or 0
-        quiz_max = result.maxsize or 0
-
+        # Gesamt
         total_score = quiz_score + total_text_score
         total_max = quiz_max + total_text_max_score
 
-        # Werte anfügen
-        result.total_score = total_score
-        result.total_max_score = total_max
-        result.session_id = session_id
+        results.append({
+            "session_id": session.id,
+            "user": session.user,
+            "topic": session.topic.topic,
+            "topic_type": session.topic.topic_type.name if session.topic.topic_type else "Unbekannt",
+            "quiz_result": quiz_result,
+            "wrong_answers": quiz_result.wrong_answers.all() if quiz_result else [],
+            "text_answers": text_answers,
+            "pending_count": text_answers.filter(score__isnull=True).count(),
+            "total_text_score": total_text_score,
+            "total_text_max_score": total_text_max_score,
+            "score": quiz_score,
+            "maxsize": quiz_max,
+            "total_score": total_score,
+            "total_max_score": total_max,
+            "created_at": localtime(session.started_at + timedelta(hours=2)),
+            "deletion_date": localtime(session.started_at + timedelta(days=60)),
+        })
 
     return render(request, "score_list.html", {"results": results})
 
 
-
-
-
 #Excel Datei Herunterladen 
 #https://openpyxl.readthedocs.io/en/stable/
-from openpyxl.styles import Font, PatternFill
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from openpyxl import Workbook
-from openpyxl.styles import Font
-from django.contrib.auth.decorators import login_required
-
-from .models import QuizResult
 
 @login_required
 def download_result_excel(request, id):
@@ -371,7 +421,6 @@ def download_result_excel(request, id):
             last_row = sheet.max_row
             for col in range(1, 4):
                 sheet.cell(row=last_row, column=col).font = bold_font
-
             for ans in text_answers:
                 sheet.append([
                     ans.question.question_text,
@@ -460,23 +509,29 @@ def download_all_results_excel(request):
 
 
 @login_required
-@transaction.atomic  # alles oder nichts – sichert Datenkonsistenz
+@transaction.atomic
 def delete_result(request, id):
-    result = get_object_or_404(QuizResult.objects.select_related("session"), id=id)
-    session = result.session  # die zugehörige TestSession
+    session = get_object_or_404(TestSession.objects.select_related("topic__topic_type"), id=id)
+    topic_type = session.topic.topic_type.name if session.topic and session.topic.topic_type else "MCQ"
 
-    #  WrongAnswers löschen (gehören direkt zu QuizResult)
-    result.wrong_answers.all().delete()
+    # Fall 1: Nur MCQ
+    if topic_type == "MCQ":
+        session.quiz_results.all().delete()
 
-    #  TextAnswers der gleichen Session löschen (wenn Session existiert)
-    if session:
+    # Fall 2: Nur Text
+    elif topic_type == "Textfrage":
         session.text_answers.all().delete()
-        session.delete()  # Session selbst löschen
 
-    # QuizResult löschen
-    result.delete()
+    # Fall 3: Mixed (MCQ + Text)
+    elif topic_type == "MCQ + Text":
+        session.quiz_results.all().delete()
+        session.text_answers.all().delete()
+
+    # Session selbst löschen
+    session.delete()
 
     return redirect("score_list_view")
+
 
 
 from django.db import transaction
@@ -485,11 +540,9 @@ from django.db import transaction
 @transaction.atomic
 def delete_all_result(request):
     #  Alle Sessions zuerst löschen (löscht automatisch TextAnswers, wenn on_delete=CASCADE)
-    from .models import TestSession, QuizResult  # Import hier, um Zirkularimporte zu vermeiden
     TestSession.objects.all().delete()
     # alle QuizResults löschen (löscht WrongAnswers per on_delete=CASCADE)
     QuizResult.objects.all().delete()
-
     return redirect("score_list_view")
 
 
@@ -530,17 +583,19 @@ def review_text_answer(request, answer_id):
     return render(request, "review_text_answer.html", {"answer": answer})
 
 
-
 class TextQuestionByTopicNameView(generics.ListAPIView):
     serializer_class = TextQuestionSerializer
- 
-    def get_queryset(self):
-        topic_name = self.request.query_params.get('topic')
-        if topic_name:
-            return TextQuestion.objects.filter(topic__topic=topic_name)
-        return TextQuestion.objects.none()
-    
+    pagination_class = None   #  Wichtig: keine Pagination
 
+    def get_queryset(self):
+        topic_name = self.request.query_params.get("topic")
+        if topic_name:
+            return TextQuestion.objects.filter(topic__topic__iexact=topic_name)
+        return TextQuestion.objects.none()
+
+
+
+    
 
 class SubmitTextAnswerAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -548,8 +603,8 @@ class SubmitTextAnswerAPI(APIView):
     def post(self, request):
         question_id = request.data.get("question")
         answer_text = request.data.get("answer_text")
-        session_id = request.data.get("session")  #  New: session ID from Android
-        topic_name = request.data.get("topic")       # optional fallback to auto-create session
+        session_id = request.data.get("session")  # New: session ID from Android
+        topic_name = request.data.get("topic")    # optional fallback to auto-create session
 
         if not question_id or not answer_text:
             return Response({"error": "question and answer_text are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -588,7 +643,6 @@ class SubmitTextAnswerAPI(APIView):
         )
 
 
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def start_test_session(request):
@@ -613,48 +667,33 @@ def delete_session(request, session_id):
     return redirect('score_list_view')
 
 
-
 @staff_member_required
 def choose_topic_type(request):
     if request.method == "POST":
         choice = request.POST.get("choice")
-        if choice == "mcq":
-            return redirect("add_topic")  # <-- hier deine aktuelle MCQ-Create-View
-        elif choice == "text":
-            return redirect("create_text_topic")
-        elif choice == "mixed":
-            return redirect("create_mixed_topic")
+        try:
+            topic_type = TopicType.objects.get(name__iexact=choice)  # Hole den Typ aus DB
+        except TopicType.DoesNotExist:
+            topic_type = None
+
+        if topic_type:
+            # Weiterleiten mit Typ-ID
+            return redirect(f"{reverse('add_topic')}?type_id={topic_type.id}")
+
     return render(request, "choose_topic_type.html")
-
-
-
-from django.forms import modelform_factory, inlineformset_factory
-
-@staff_member_required
-def create_text_topic(request):
-    TopicForm = modelform_factory(Topics, fields=["topic", "description", "visible"])
     
-    if request.method == "POST":
-        topic_form = TopicForm(request.POST)
-        if topic_form.is_valid():
-            topic = topic_form.save(commit=False)
-            topic.created_by = request.user
-            topic.created_at = timezone.now()+ timedelta(hours=2)
-            topic.save()
-            messages.success(request, "Textfragen-Thema erfolgreich erstellt.")
-            return redirect("topics_list")
-    else:
-        topic_form = TopicForm()        
-    return render(request, "add_edit_topic.html", {"topic_form": topic_form, 'title': 'Thema hinzufügen'})
 
- 
+
 @staff_member_required
 def add_text_questions_to_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     TextQuestionFormSet = inlineformset_factory(
-        Topics, TextQuestion, form=TextQuestionForm,
-        fields=("question_text", "max_score", "topic"),
-        extra=1, can_delete=True
+        Topics,
+        TextQuestion,
+        form=TextQuestionForm,
+        fields=("question_text", "max_score"),
+        extra=1,
+        can_delete=True
     )
 
     if request.method == "POST":
@@ -662,11 +701,153 @@ def add_text_questions_to_topic(request, topic_id):
         if formset.is_valid():
             formset.save()
             messages.success(request, "Textfragen gespeichert.")
-            return redirect("topics_list")
+            return redirect("text_questions_list", topic_id=topic.id)  #  zurück zur Fragenliste
         else:
             messages.error(request, "Bitte korrigiere die Fehler.")
     else:
         formset = TextQuestionFormSet(instance=topic)
 
-    return render(request, "create_text_questions.html", {"formset": formset, "topic": topic})
+    return render(request, "create_text_questions.html", {
+        "formset": formset,
+        "topic": topic
+    })
+
+
+@staff_member_required
+def view_text_questions_of_topic(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+    text_questions = TextQuestion.objects.filter(topic=topic)
+    return render(request, "view_text_questions.html", {
+        "topic": topic,
+        "text_questions": text_questions
+    })
+
+@staff_member_required
+def edit_text_question(request, question_id):
+    question = get_object_or_404(TextQuestion, pk=question_id)
+    if request.method == "POST":
+        form = TextQuestionForm(request.POST, instance=question)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Textfrage wurde bearbeitet.")
+            return redirect("view_text_questions_of_topic", topic_id=question.topic.pk)
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler.")
+    else:
+        form = TextQuestionForm(instance=question)
+    return render(request, "edit_text_question.html", {
+        "form": form,
+        "question": question,
+        "topic": question.topic
+    })
+
+
+@staff_member_required
+def delete_text_question(request, question_id):
+        question = get_object_or_404(TextQuestion, pk=question_id)
+        topic_id = question.topic.pk
+        question.delete()
+        messages.success(request, "Textfrage wurde gelöscht.")
+        return redirect("view_text_questions_of_topic", topic_id=topic_id)
+
+
+@staff_member_required
+def add_mcq_text_question_view(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+
+    # Default: Erster Schritt = Textfrage
+    step = request.GET.get("step", "text")
+    text_question = None  
+
+    # Schritt 1: Textfrage speichern
+    if request.method == "POST" and "text_submit" in request.POST:
+        text_form = TextQuestionForm(request.POST)
+        # Exclude topic field from form
+        if "topic" in text_form.fields:
+            text_form.fields.pop("topic")
+        if text_form.is_valid():
+            text_question = text_form.save(commit=False)
+            text_question.topic = topic
+            text_question.save()
+            messages.success(request, "Textfrage gespeichert. Bitte füge nun eine passende MCQ-Frage hinzu.")
+            # Wechsel auf Schritt 2
+            return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=mcq&text_id={text_question.id}")
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler in der Textfrage.")
+            step = "text"
+            return render(request, "add_mcq_text_question.html", {
+                "topic": topic,
+                "step": step,
+                "text_form": text_form,
+                "mcq_form": None,
+            })
+
+    # Schritt 2: MCQ speichern
+    if request.method == "POST" and "mcq_submit" in request.POST:
+        text_question_id = request.POST.get("text_question_id")
+        text_question = get_object_or_404(TextQuestion, pk=text_question_id, topic=topic)
+        mcq_form = QuestionForm(request.POST, request.FILES, current_topic=topic)
+        if mcq_form.is_valid():
+            mcq_question = mcq_form.save(commit=False)
+            mcq_question.topic_id = topic
+            # 🔗 Optionale Verknüpfung
+            mcq_question.linked_text_question = text_question  
+            mcq_question.save()
+            messages.success(request, "MCQ + Textfrage erfolgreich gespeichert.")
+            return redirect("topic_questions", topic_id=topic.pk)
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler in der MCQ-Frage.")
+            step = "mcq"
+            return render(request, "add_mcq_text_question.html", {
+                "topic": topic,
+                "step": step,
+                "text_form": None,
+                "mcq_form": mcq_form,
+                "text_question": text_question
+            })
+
+    # Initial laden: Schritt 1 oder Schritt 2
+    if step == "mcq":
+        text_question_id = request.GET.get("text_id")
+        text_question = get_object_or_404(TextQuestion, pk=text_question_id, topic=topic)
+        mcq_form = QuestionForm(current_topic=topic)
+        return render(request, "add_mcq_text_question.html", {
+            "topic": topic,
+            "step": "mcq",
+            "text_form": None,
+            "mcq_form": mcq_form,
+            "text_question": text_question
+        })
+    else:
+        text_form = TextQuestionForm()
+        # Exclude topic field from form
+        if "topic" in text_form.fields:
+            text_form.fields.pop("topic")
+        return render(request, "add_mcq_text_question.html", {
+            "topic": topic,
+            "step": "text",
+            "text_form": text_form,
+            "mcq_form": None
+        })
+
+@login_required
+def view_mcq_text_questions(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+
+    # Textfragen dieses Themas laden
+    text_questions = TextQuestion.objects.filter(topic=topic).prefetch_related("answers")
+
+    # MCQ-Fragen dieses Themas laden
+    mcq_questions = Questions.objects.filter(topic_id=topic)
+
+    return render(
+        request,
+        "view_mcq_text_questions.html",
+        {
+            "topic": topic,
+            "text_questions": text_questions,
+            "mcq_questions": mcq_questions,
+        },
+    )
+
 

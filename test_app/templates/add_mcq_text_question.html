@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+
+    <!-- Header mit Fortschrittsanzeige -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-plus-square"></i> Frage zum Thema: <span class="text-gradient">{{ topic.topic }}</span></h2>
+        <a href="{% url 'view_mcq_text_questions' topic.topic_id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-return-left"></i> Zurück zur Übersicht
+        </a>
+    </div>
+
+    <!-- Fortschrittsanzeige -->
+    <div class="progress mb-4 shadow-sm" style="height: 30px;">
+        <div class="progress-bar {% if step == 'text' %}bg-primary{% else %}bg-success{% endif %}" 
+             role="progressbar"
+             style="width: {% if step == 'text' %}50{% else %}100{% endif %}%;">
+            {% if step == "text" %}
+                1 / 2 ➝ Textfrage
+            {% else %}
+                2 / 2 ➝ MCQ-Frage
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formularbereich -->
+    <div class="card shadow-lg border-0">
+        <div class="card-body">
+            {% if step == "text" %}
+                <h4 class="mb-3"><i class="bi bi-card-text"></i> Textfrage hinzufügen</h4>
+                <form method="post" class="needs-validation">
+                    {% csrf_token %}
+                    {% for field in text_form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" name="text_submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-return-right"></i> Weiter zu MCQ
+                        </button>
+                    </div>
+                </form>
+            {% elif step == "mcq" %}
+                <h4 class="mb-3"><i class="bi bi-ui-checks"></i> MCQ-Frage hinzufügen</h4>
+                <form method="post" enctype="multipart/form-data" class="needs-validation">
+                    {% csrf_token %}
+                    <input type="hidden" name="text_question_id" value="{{ text_question.id }}">
+                    {% for field in mcq_form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex justify-content-between">
+                        <a href="?step=text" class="btn btn-outline-secondary"><i class="bi bi-arrow-return-left"></i> Zurück</a>
+                        <button type="submit" name="mcq_submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Speichern & Fertig
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-gradient {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>
+{% endblock %}

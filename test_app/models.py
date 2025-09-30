@@ -50,6 +50,7 @@ class TestSession(models.Model):
 
     # Optional: Gesamtscore (MCQ + Textfragen)
     total_score = models.FloatField(default=0)
+    total_score = models.FloatField
 
     def __str__(self):
         return f"TestSession von {self.user.username} für {self.topic.topic} am {self.started_at.strftime('%d.%m.%Y %H:%M')}"
@@ -59,7 +60,7 @@ class QuizResult(models.Model):
     session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="quiz_results", null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='results', null=True)
     score = models.IntegerField()
-    topic = models.TextField(db_column='topic', blank=True, null=True,max_length=100)
+    topic = models.TextField(db_column='topic', blank=True,null=True,max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     maxsize = models.IntegerField(null=True)
 
@@ -100,6 +101,7 @@ class TextQuestion(models.Model):
 
     
 class TextAnswer(models.Model):
+    
     session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="text_answers", null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='text_answers')
     question = models.ForeignKey('TextQuestion', on_delete=models.CASCADE, related_name='answers')
@@ -108,12 +110,14 @@ class TextAnswer(models.Model):
     score = models.FloatField(null=True, blank=True)  # Vergebene Punkte
     feedback = models.TextField(blank=True, null=True)  # Feedback vom Ausbilder
     created_at = models.DateTimeField(auto_now_add=True)
+    
+
 
     def __str__(self):
         return f"{self.user.username} – {self.question.question_text[:30]}"
 
     def is_pending(self):
-        """Hilfsfunktion: Gibt zurück, ob diese Antwort noch bewertet werden muss."""
+        """Hilfsfunktion: acht Gibt zurück, ob diese Antwort noch bewertet werden muss."""
         return not self.is_reviewed or self.score is None
     
 

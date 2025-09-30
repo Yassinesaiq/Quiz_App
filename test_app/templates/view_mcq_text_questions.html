@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4"><i class="bi bi-journal-text"></i> Übersicht für Thema: <span class="text-gradient">{{ topic.topic }}</span></h2>
+    <p class="mb-3" >{{topic.description}}</p>
+
+    <!-- Textfragen -->
+    <h4 class="mb-3"><i class="bi bi-card-text"></i> Textfragen</h4>
+    {% if text_questions %}
+        <ul class="list-group mb-4">
+            {% for question in text_questions %}
+                <li class="list-group-item shadow-sm mb-2">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ forloop.counter }}.</strong> {{ question.question_text }}
+                            <br>
+                            <span style="background-color:#ff2a0c" class="badge text-light">Max Score: {{ question.max_score }}</span>
+                        </div>
+                        <div>
+                            <a href="{% url 'edit_text_question' question.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                            <form action="{% url 'delete_text_question' question.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Diese Frage wirklich löschen?');"><i class="bi bi-trash2-fill"></i> Löschen</button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-warning"><i class="bi bi-ban"></i> Keine Textfragen vorhanden.</div>
+    {% endif %}
+
+    <!-- MCQ-Fragen -->
+    <h4 class="mb-3"><i class="bi bi-ui-checks"></i> MCQ-Fragen</h4>
+    {% if mcq_questions %}
+        <ul class="list-group mb-4">
+            {% for question in mcq_questions %}
+                <li class="list-group-item shadow-sm mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ forloop.counter }}.</strong> {{ question.question }}
+                            <ul class="mt-2 mb-2">
+                                <li>A: {{ question.option1 }}</li>
+                                <li>B: {{ question.option2 }}</li>
+                                <li>C: {{ question.option3 }}</li>
+                                <li>D: {{ question.option4 }}</li>
+                            </ul>
+                            <p><span class="badge bg-success">✅ Richtige Antwort: {{ question.answer }}</span></p>
+                        </div>
+                        <div class="ms-3">
+                            <a href="{% url 'edit_question' question_id=question.question_id %}" class="btn btn-sm btn-outline-primary mb-1"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                            <a href="{% url 'delete_question' question_id=question.question_id %}" class="btn btn-sm btn-outline-danger mb-1" onclick="return confirm('Bist du sicher?')"><i class="bi bi-trash2-fill"></i> Löschen</a>
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-warning">🚫 Keine MCQ-Fragen vorhanden.</div>
+    {% endif %}
+</div>
+
+<style>
+    .text-gradient {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>
+{% endblock %}
