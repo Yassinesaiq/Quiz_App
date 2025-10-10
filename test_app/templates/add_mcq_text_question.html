@@ -6,7 +6,7 @@
 
     <!-- Header mit Fortschrittsanzeige -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-plus-square"></i> Frage zum Thema: <span class="text-gradient">{{ topic.topic }}</span></h2>
+        <h2 class="mb-0"><i class="bi bi-plus-square"></i> Frage zum Thema: <span class="title-text-gradient">{{ topic.topic }}</span></h2>
         <a href="{% url 'view_mcq_text_questions' topic.topic_id %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-return-left"></i> Zurück zur Übersicht
         </a>
@@ -14,21 +14,34 @@
 
     <!-- Fortschrittsanzeige -->
     <div class="progress mb-4 shadow-sm" style="height: 30px;">
-        <div class="progress-bar {% if step == 'text' %}bg-primary{% else %}bg-success{% endif %}" 
+        <div class="progress-bar {% if step == 'text' %}bg-primary{% elif step == 'mcq' %}bg-success{% else %}bg-info{% endif %}" 
              role="progressbar"
-             style="width: {% if step == 'text' %}50{% else %}100{% endif %}%;">
+             style="width: {% if step == 'text' %}33{% elif step == 'mcq' %}66{% else %}100{% endif %}%;">
             {% if step == "text" %}
-                1 / 2 ➝ Textfrage
+                1 / 2 ➝ Textfragen eingeben
+            {% elif step == "mcq" %}
+                2 / 2 ➝ MCQ-Fragen eingeben
             {% else %}
-                2 / 2 ➝ MCQ-Frage
+                Frage auswählen
             {% endif %}
         </div>
     </div>
 
-    <!-- Formularbereich -->
-    <div class="card shadow-lg border-0">
-        <div class="card-body">
-            {% if step == "text" %}
+    <!-- Auswahlbereich -->
+    {% if not step %}
+        <div class="card shadow-lg border-0 mb-4">
+            <div class="card-body text-center">
+                <h4 class="mb-3"><i class="bi bi-question-circle"></i> Welche Fragen möchtest du erstellen?</h4>
+                <a href="?step=text" class="btn btn-primary mx-2"><i class="bi bi-card-text"></i> Textfragen eingeben</a>
+                <a href="?step=mcq" class="btn btn-success mx-2"><i class="bi bi-ui-checks"></i> MCQ-Fragen eingeben</a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Textfragen Bereich -->
+    {% if step == "text" %}
+        <div class="card shadow-lg border-0">
+            <div class="card-body">
                 <h4 class="mb-3"><i class="bi bi-card-text"></i> Textfrage hinzufügen</h4>
                 <form method="post" class="needs-validation">
                     {% csrf_token %}
@@ -41,17 +54,29 @@
                             {% endif %}
                         </div>
                     {% endfor %}
-                    <div class="d-flex justify-content-end">
+                    <div class="d-flex justify-content-between">
                         <button type="submit" name="text_submit" class="btn btn-primary">
-                            <i class="bi bi-arrow-return-right"></i> Weiter zu MCQ
+                            <i class="bi bi-save"></i> Speichern & weitere Textfrage
                         </button>
+                        <!-- Wechsel nur anzeigen, wenn eine Textfrage existiert -->
+                        {% if text_question %}
+                            <a href="?step=mcq&text_id={{ text_question.id }}" class="btn btn-outline-success">
+                                <i class="bi bi-ui-checks"></i> Zu MCQ-Fragen wechseln
+                            </a>
+                        {% endif %}
                     </div>
                 </form>
-            {% elif step == "mcq" %}
+            </div>
+        </div>
+    {% elif step == "mcq" %}
+        <div class="card shadow-lg border-0">
+            <div class="card-body">
                 <h4 class="mb-3"><i class="bi bi-ui-checks"></i> MCQ-Frage hinzufügen</h4>
                 <form method="post" enctype="multipart/form-data" class="needs-validation">
                     {% csrf_token %}
-                    <input type="hidden" name="text_question_id" value="{{ text_question.id }}">
+                    {% if text_question %}
+                        <input type="hidden" name="text_question_id" value="{{ text_question.id }}">
+                    {% endif %}
                     {% for field in mcq_form %}
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ field.label }}</label>
@@ -62,22 +87,15 @@
                         </div>
                     {% endfor %}
                     <div class="d-flex justify-content-between">
-                        <a href="?step=text" class="btn btn-outline-secondary"><i class="bi bi-arrow-return-left"></i> Zurück</a>
                         <button type="submit" name="mcq_submit" class="btn btn-success">
-                            <i class="bi bi-save"></i> Speichern & Fertig
+                            <i class="bi bi-save"></i> Speichern & weitere MCQ-Frage
                         </button>
+                        <a href="?step=text" class="btn btn-outline-primary"><i class="bi bi-card-text"></i> Zu Textfragen wechseln</a>
                     </div>
                 </form>
-            {% endif %}
+            </div>
         </div>
-    </div>
+    {% endif %}
 </div>
 
-<style>
-    .text-gradient {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-</style>
 {% endblock %}

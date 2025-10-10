@@ -76,7 +76,13 @@ from .models import TextQuestion
 class TextQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TextQuestion
-        fields = ['id', 'topic', 'question_text','max_score']  # Falls du mehr Felder hast, hier hinzufügen
+        fields = ['id', 'topic', 'question_text','max_score','des_img']
+        
+    def get_image_url(self, obj):
+        if obj.des_img:
+            return self.context['request'].build_absolute_uri(obj.des_img.url)
+        return None
+          # Falls du mehr Felder hast, hier hinzufügen
 
 class TextAnswerSerializer(serializers.ModelSerializer):
     class Meta:

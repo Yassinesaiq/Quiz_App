@@ -1,0 +1,522 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+/* =========================
+  Farbvariablen (Global)
+  ========================= */
+:root {
+  --color-text: #616161;
+  --color-bg-primary: #007bff;
+  --color-bg-success: #28a745;
+  --color-btn-light: #f8f9fa;
+  --color-text: #616161;
+  --color-text-btn: #ffffff;
+  --card1-gradient-color1: #f12711;
+  --card1-gradient-color2: #f5af19;
+  --card2-gradient-color1: #7F00FF;
+  --card2-gradient-color2: #E100FF;
+  --card3-gradient-color1: #3f2b96;
+  --card3-gradient-color2: #a8c0ff;
+  --card4-gradient-color1: #11998e;
+  --card4-gradient-color2: #38ef7d;    
+}
+
+/* =========================
+  Topics Page Styles
+  ========================= */
+.topics_container.card-grid {
+   display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+   gap: 30px;
+}
+
+.topics_container .card-wrap {
+   width: 280px;
+   background: #fff;
+   border-radius: 20px;
+   border: 5px solid #fff;
+   overflow: hidden;
+   color: var(--color-text);
+   box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px,
+   rgba(0, 0, 0, 0.23) 0px 6px 6px;
+   transition: all 0.2s ease-in-out;
+   transform: translateY(30px);
+   opacity: 0;
+   transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.topics_container .card-wrap.visible {
+   transform: translateY(0);
+   opacity: 1;
+}
+
+.topics_container .card-wrap:hover {
+   transform: scale(1.03);
+}
+
+.topics_container .card-header {
+   height: 200px;
+   width: 100%;
+   border-radius: 100% 0% 100% 0% / 0% 50% 50% 100%;
+   overflow: hidden;
+   position: relative;
+}
+
+.topics_container .card-header .image-mask {
+   height: 100%;
+   width: 100%;
+   overflow: hidden;
+   border-radius: inherit;
+   position: relative;
+}
+
+.topics_container .card-header .image-mask img {
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   display: block;
+}
+
+/* Icon styles for topics cards */
+.topic-icon {
+   position: absolute;
+   top: 10px;
+   right: 10px;
+   font-size: 30px;
+   z-index: 10;
+   display: flex;
+   gap: 5px;                /* space between multiple icons */
+   align-items: center;
+   justify-content: center;
+}
+
+.topic-icon span {
+   display: inline-block;
+   background-color: #fff;  /* white background */
+   padding: 4px 6px;        /* some padding around emoji */
+   border-radius: 6px;      /* rounded corners */
+   font-size: 20px;         /* adjust emoji size */
+   box-shadow: 0 0 4px rgba(0,0,0,0.3);  /* optional subtle shadow */
+   cursor: default;
+}
+
+.topics_container .card-content {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   padding: 20px;
+}
+
+.topics_container .card-title {
+   text-align: center;
+   text-transform: uppercase;
+   font-size: 16px;
+   font-weight: 700;
+   margin-top: 10px;
+   margin-bottom: 10px;
+}
+
+.topics_container .card-text {
+   text-align: center;
+   font-size: 13px;
+   margin-bottom: 15px;
+   min-height: 40px;
+}
+
+/* Badge style for topics cards */
+.badge {
+   font-size: 12px;
+   padding: 5px 10px;
+   border-radius: 20px;
+   margin-bottom: 10px;
+}
+
+/* Button row inside topics cards */
+.btn-row {
+   display: flex;
+   justify-content: space-between;
+   gap: 6px;
+   flex-wrap: wrap;
+   margin-bottom: 10px;
+}
+
+.topics_container .card-btn {
+   flex: 1 1 22%;
+   border: none;
+   border-radius: 100px;
+   padding: 5px 10px;
+   color: var(--color-text-btn);
+   font-size: 11px;
+   text-transform: uppercase;
+   text-decoration: none;
+   text-align: center;
+   white-space: nowrap;
+}
+
+/* Gradient backgrounds for topic card buttons */
+.topics_container .card-btn.one {
+   background: linear-gradient(to left, var(--card1-gradient-color1), var(--card1-gradient-color2));
+}
+.topics_container .card-btn.two {
+   background: linear-gradient(to left, var(--card2-gradient-color1), var(--card2-gradient-color2));
+}
+.topics_container .card-btn.three {
+   background: linear-gradient(to left, var(--card3-gradient-color1), var(--card3-gradient-color2));
+}
+.topics_container .card-btn.four {
+   background: linear-gradient(to left, var(--card4-gradient-color1), var(--card4-gradient-color2));
+}
+
+/* Title style (used in topics and results) */
+h1.title {
+   text-align: center;
+   font-weight: 900;
+   font-size: 2.5rem;
+   margin-bottom: 40px;
+   background: linear-gradient(to right, #ff416c, #ff4b2b);
+   -webkit-background-clip: text;
+   background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+
+/* =========================
+  Dashboard Page Styles
+  ========================= */
+.dashboard-container {
+  font-family: 'Roboto', sans-serif;
+}
+
+.dashboard-container h1 {
+  text-align: center;
+  font-weight: 900;
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  background: linear-gradient(to right, #ff416c, #ff4b2b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dashboard-container .card {
+  border-radius: 15px;
+  box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px,
+          rgba(0, 0, 0, 0.23) 0px 6px 6px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: #fff;
+  padding: 20px;
+}
+
+.dashboard-container .card:hover {
+  transform: scale(1.03);
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 15px 25px,
+          rgba(0, 0, 0, 0.35) 0px 10px 10px;
+}
+
+.dashboard-container .card-primary {
+  background: linear-gradient(135deg, #fb5b3fff, #ff2600ff);
+}
+
+.dashboard-container .card-success {
+  background: linear-gradient(135deg, #6e28a7ff, #431569ff);
+}
+
+.dashboard-container .card-header {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 15px;
+}
+
+.dashboard-container .card-title {
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.dashboard-container .card-text {
+  font-size: 1rem;
+  margin-bottom: 20px;
+}
+
+/* Welcome card on dashboard */
+.dashboard-container .dashboard-welcome-card {
+  background: linear-gradient(135deg, #f8f9fa, #c7b5d5ff);
+  color: #431569ff;
+  border-radius: 15px;
+  box-shadow: 0 4px 16px rgba(67,21,105,0.08);
+  text-align: center;
+  padding: 30px 20px;
+  margin-bottom: 30px;
+}
+
+/* =========================
+  Buttons (Global/Shared)
+  ========================= */
+.fl-container a.btn-outline-primary {
+  background: transparent;
+  border: 2px solid #431569ff;
+  color: #431569ff;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a.btn-outline-primary:hover {
+  background-color: #431569ff;
+  color: white;
+}
+
+.btn-custom {
+  display: inline-block;
+  background: var(--color-btn-light);
+  color: black;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-custom:hover {
+  background-color: #ddd;
+}
+
+/* =========================
+  List Groups (Dashboard/Shared)
+  ========================= */
+.list-group {
+  list-style: none;
+  padding: 0;
+}
+
+.list-group-item {
+  background: #fff;
+  border-radius: 15px;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  box-shadow: rgba(0,0,0,0.1) 0px 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.list-group-item:hover {
+  transform: translateY(-5px);
+}
+
+.text-muted {
+  color: #888 !important;
+}
+
+/* =========================
+  Slide-in Animation (Shared)
+  ========================= */
+.slide-card {
+  transform: translateY(30px);
+  opacity: 0;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.slide-card.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* =========================
+  Card Grid (Shared/Other Pages)
+  ========================= */
+.card-grid {
+   display: flex;
+   justify-content: center;
+   gap: 40px;
+   margin-top: 40px;
+   flex-wrap: wrap;
+}
+
+/* =========================
+  Type Card (Other Page)
+  ========================= */
+.type-card {
+   width: 350px;
+   background: #fff;
+   border-radius: 20px;
+   box-shadow: rgba(0, 0, 0, 0.15) 0px 12px 24px;
+   text-align: center;
+   padding: 40px 30px;
+   cursor: pointer;
+   transition: transform 0.2s ease, box-shadow 0.2s ease;
+   border: 3px solid #ff2a0c;
+}
+.type-card:hover {
+   transform: translateY(-8px) scale(1.03);
+   box-shadow: rgba(0, 0, 0, 0.25) 0px 18px 32px;
+   border-color: #37018d;
+   color:rgba(0, 0, 0, 0.15);
+}
+.type-card h3 {
+   margin-top: 20px;
+   color: #ff2a0c;
+   font-weight: bold;
+   font-size: 2rem;
+}
+.type-card p {
+   font-size: 1.1rem;
+   color: #555;
+   margin-top: 10px;
+}
+.type-card i {
+   font-size: 60px;
+   color: #37018d;
+   margin-bottom: 10px;
+}
+
+/* Gradient text for MCQ questions (Other Page) */
+.text-gradient-textmcqquestions {
+   background: linear-gradient(90deg, #667eea, #764ba2);
+   -webkit-background-clip: text;
+   background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+
+/* =========================
+  Login Page Styles
+  ========================= */
+.body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #4b177cff, #ac79c0ff);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+   }
+
+   .login-card {
+      background-color: white;
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+   }
+
+   .login-card h2 {
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #007BFF;
+   }
+
+   .form-label {
+      font-weight: 600;
+   }
+
+   .btn-primary {
+      background-color: #007BFF;
+      border: none;
+      font-weight: 600;
+   }
+
+   .btn-primary:hover {
+      background-color: #0056b3;
+   }
+
+   .alert {
+      font-size: 0.9rem;
+   }
+
+   .logo {
+      display: block;
+      margin: 0 auto 1.5rem;
+      max-width: 160px;
+   }
+
+/* =========================
+  Results Page Styles
+  ========================= */
+.results-grid {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 30px;
+   justify-content: center;
+   margin-top: 30px;
+}
+h1.title {
+   text-align: center;
+   font-weight: 900;
+   font-size: 2.5rem;
+   margin-bottom: 40px;
+   background: linear-gradient(to right, #ff416c, #ff4b2b);
+   -webkit-background-clip: text;
+   background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+.result-card {
+   width: 360px;
+   background: #fff;
+   border-radius: 20px;
+   border: 4px solid #fff;
+   box-shadow: rgba(0, 0, 0, 0.15) 0px 10px 20px,
+           rgba(0, 0, 0, 0.1) 0px 6px 6px;
+   padding: 20px;
+   transition: transform 0.3s ease, opacity 0.3s ease;
+   opacity: 0;
+   transform: translateY(30px);
+}
+
+.result-card.visible { opacity: 1; transform: translateY(0); }
+.result-card h3 { margin-top: 0; font-weight: 700; color: #333; }
+.result-card p { margin: 5px 0; font-size: 14px; }
+.result-card ul { padding-left: 18px; font-size: 13px; }
+.result-card li { margin-bottom: 10px; }
+.result-card hr { margin: 15px 0; }
+
+
+
+/* Score List filter container styles */
+.Rftr-container .filter-card {
+   background:#f8f9fa;
+   border-radius: 16px;
+   padding: 18px 24px;
+   box-shadow: 0 4px 16px rgba(67,21,105,0.08);
+   text-align :center;
+   color:#610079ff;
+}
+.Rftr-container .btn-primary-light {
+  background: transparent;
+  border: 2px solid #610079ff;
+  color: #610079ff;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.Rftr-container .btn-secondary-light {
+  background: transparent;
+  border: 2px solid #535353ff;
+  color: #4a4a4aff;
+  padding: 10px 25px;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.Rftr-container .btn-primary-light:hover {
+  background-color: #610079ff;
+  color: white;
+}
+
+.Rftr-container .btn-secondary-light:hover {
+  background-color: #4a4a4aff;
+  color: white;
+}
+
+.Rftr-container .btn-sm {
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+}

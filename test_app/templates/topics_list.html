@@ -4,203 +4,7 @@
 {% block title %}Liste des Topics{% endblock %}
 
 {% block content %}
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
 
-    :root {
-        --color-text: #616161;
-        --color-text-btn: #ffffff;
-        --card1-gradient-color1: #f12711;
-        --card1-gradient-color2: #f5af19;
-        --card2-gradient-color1: #7F00FF;
-        --card2-gradient-color2: #E100FF;
-        --card3-gradient-color1: #3f2b96;
-        --card3-gradient-color2: #a8c0ff;
-        --card4-gradient-color1: #11998e;
-        --card4-gradient-color2: #38ef7d;
-    }
-
-    .card-grid {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 30px;
-    }
-
-    .card-wrap {
-        width: 280px;
-        background: #fff;
-        border-radius: 20px;
-        border: 5px solid #fff;
-        overflow: hidden;
-        color: var(--color-text);
-        box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px,
-        rgba(0, 0, 0, 0.23) 0px 6px 6px;
-        transition: all 0.2s ease-in-out;
-
-        transform: translateY(30px);
-        opacity: 0;
-        transition: transform 0.5s ease, opacity 0.5s ease;
-    }
-
-    .card-wrap.visible {
-        transform: translateY(0);
-        opacity: 1;
-    }
-
-    .card-wrap:hover {
-        transform: scale(1.03);
-    }
-
-    .card-header {
-        height: 200px;
-        width: 100%;
-        border-radius: 100% 0% 100% 0% / 0% 50% 50% 100%;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .card-header .image-mask {
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-        border-radius: inherit;
-        position: relative;
-    }
-
-    .card-header .image-mask img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .topic-icon {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        font-size: 30px;
-    }
-
-    .card-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-    }
-
-    .card-title {
-        text-align: center;
-        text-transform: uppercase;
-        font-size: 16px;
-        font-weight: 700;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-
-    .card-text {
-        text-align: center;
-        font-size: 13px;
-        margin-bottom: 15px;
-        min-height: 40px;
-    }
-
-    .badge {
-        font-size: 12px;
-        padding: 5px 10px;
-        border-radius: 20px;
-        margin-bottom: 10px;
-    }
-
-    .btn-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
-    }
-
-    .card-btn {
-        flex: 1 1 22%;
-        border: none;
-        border-radius: 100px;
-        padding: 5px 10px;
-        color: var(--color-text-btn);
-        font-size: 11px;
-        text-transform: uppercase;
-        text-decoration: none;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    .card-btn.one {
-        background: linear-gradient(to left, var(--card1-gradient-color1), var(--card1-gradient-color2));
-    }
-
-    .card-btn.two {
-        background: linear-gradient(to left, var(--card2-gradient-color1), var(--card2-gradient-color2));
-    }
-
-    .card-btn.three {
-        background: linear-gradient(to left, var(--card3-gradient-color1), var(--card3-gradient-color2));
-    }
-
-    .card-btn.four {
-        background: linear-gradient(to left, var(--card4-gradient-color1), var(--card4-gradient-color2));
-    }
-
-    h1.title {
-
-    text-align: center;
-    font-weight: 900;
-    font-size: 2.5rem;
-    margin-bottom: 40px;
-    background: linear-gradient(to right, #ff416c, #ff4b2b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-
-    }
-    .topic-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-    display: flex;
-    gap: 5px;                /* space between multiple icons */
-    align-items: center;
-    justify-content: center;
-}
-
-.topic-icon span {
-    display: inline-block;
-    background-color: #fff;  /* white background */
-    padding: 4px 6px;        /* some padding around emoji */
-    border-radius: 6px;      /* rounded corners */
-    font-size: 20px;         /* adjust emoji size */
-    box-shadow: 0 0 4px rgba(0,0,0,0.3);  /* optional subtle shadow */
-    cursor: default;
-}
-
-  a.btn-outline-primary {
-    
-    background: transparent;
-    border: 2px solid #431569ff;
-    color: #431569ff;
-    padding: 10px 25px;
-    border-radius: 50px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.3s ease;
-
-  }
-
-  a.btn-outline-primary:hover {
-    background-color: #431569ff;
-    color: white;
-  }
-
-
-</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -221,7 +25,7 @@
         });
     });
 </script>
-<div class="container mb-4">
+<div class="fl-container mb-4">
     <form method="get" action="" class="d-flex flex-wrap justify-content-center align-items-center gap-3" style="background:#f8f9fa; border-radius: 16px; padding: 18px 24px; box-shadow: 0 4px 16px rgba(67,21,105,0.08);">
         <label for="topic_type" class="form-label mb-0" style="font-weight: 700; color: #431569; font-size: 1.1rem;">
             <i class="bi bi-funnel-fill" style="font-size: 1.3rem; vertical-align: middle; margin-right: 8px;"></i>
@@ -240,7 +44,7 @@
         <a href="{% url 'choose_topic_type' %}" class="btn-outline-primary ms-2"><i class="bi bi-plus-lg"></i> Neues Thema hinzufügen</a>
     </form>
 </div>
-<div class="container mt-5">
+<div class="topics_container mt-5">
 
     <div class="card-grid">
         {% for topic in topics %}

@@ -41,7 +41,6 @@ class Topics(models.Model):
     def __str__(self):
         return f"{self.topic} "
     
-
 class TestSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="test_sessions")
     topic = models.ForeignKey('test_app.Topics', on_delete=models.CASCADE, related_name="sessions")
@@ -55,7 +54,6 @@ class TestSession(models.Model):
     def __str__(self):
         return f"TestSession von {self.user.username} für {self.topic.topic} am {self.started_at.strftime('%d.%m.%Y %H:%M')}"
 
-
 class QuizResult(models.Model):
     session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="quiz_results", null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='results', null=True)
@@ -64,14 +62,12 @@ class QuizResult(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     maxsize = models.IntegerField(null=True)
 
-
     class Meta:
         managed = True
         db_table = 'Quizresult'
 
     def __str__(self):
         return f"{self.user.username} - Score: {self.score}"
-
 
 class WrongAnswer(models.Model):
     quiz_result = models.ForeignKey(QuizResult, on_delete=models.CASCADE, related_name='wrong_answers')
@@ -86,9 +82,9 @@ class WrongAnswer(models.Model):
     def __str__(self):
         return f"Wrong: {self.question}"
     
-
 class TextQuestion(models.Model):
     question_text = models.TextField()
+    des_img = models.ImageField(db_column="image", upload_to='uploads/text_questions/', blank=True, null=True)
     topic = models.ForeignKey(Topics, on_delete=models.CASCADE, related_name='text_questions')
     max_score = models.FloatField(default=0)  # maximal erreichbare Punkte (für spätere Bewertung)
 
@@ -98,7 +94,6 @@ class TextQuestion(models.Model):
 
     def __str__(self):
         return f"Textfrage: {self.question_text[:50]}"
-
     
 class TextAnswer(models.Model):
     
@@ -120,6 +115,5 @@ class TextAnswer(models.Model):
         """Hilfsfunktion: acht Gibt zurück, ob diese Antwort noch bewertet werden muss."""
         return not self.is_reviewed or self.score is None
     
-
 
 

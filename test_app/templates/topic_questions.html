@@ -23,8 +23,8 @@
                     {{ question.question|truncatechars:100 }}
                 </div>
                 <div>
-                    <a href="{% url 'edit_question' question_id=question.question_id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
-                    <a href="{% url 'delete_question' question_id=question.question_id %}" class="btn btn-sm btn-danger" onclick="return confirm('Bist du sicher?')"><i class="bi bi-trash2-fill"></i> Löschen</a>
+                    <a href="{% url 'edit_question' question_id=question.question_id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                    <a href="{% url 'delete_question' question_id=question.question_id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bist du sicher?')"><i class="bi bi-trash2-fill"></i> Löschen</a>
                 </div>
             </li>
         {% empty %}

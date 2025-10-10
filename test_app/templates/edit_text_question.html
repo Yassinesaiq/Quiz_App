@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">✏️ Textfrage bearbeiten</h2>
+    <h2 class="mb-4"><i class="bi bi-pencil-square"></i> Textfrage bearbeiten</h2>
 
     <!-- Globale Fehler -->
     {% if form.non_field_errors %}
@@ -30,18 +30,18 @@
 
         <div class="d-flex justify-content-between mt-4">
             <button type="submit" class="btn btn-primary">
-                💾 Speichern
+                <i class="bi bi-save"></i> Speichern
             </button>
 
             <!-- Dynamische Weiterleitung je nach TopicType -->
             {% if question.topic.topic_type.name == "Textfrage" %}
-                <a href="{% url 'view_text_questions_of_topic' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+                <a href="{% url 'view_text_questions_of_topic' question.topic.pk %}" class="btn btn-secondary"><i class="bi bi-x-square"></i> Abbrechen</a>
             {% elif question.topic.topic_type.name == "MCQ" %}
-                <a href="{% url 'topic_questions' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+                <a href="{% url 'topic_questions' question.topic.pk %}" class="btn btn-secondary"><i class="bi bi-x-square"></i> Abbrechen</a>
             {% elif question.topic.topic_type.name == "MCQ+Text" %}
-                <a href="{% url 'view_mcq_text_questions' question.topic.pk %}" class="btn btn-secondary">🔙 Abbrechen</a>
+                <a href="{% url 'view_mcq_text_questions' question.topic.pk %}" class="btn btn-secondary"><i class="bi bi-x-square"></i> Abbrechen</a>
             {% else %}
-                <a href="{% url 'topics_list' %}" class="btn btn-secondary">🔙 Abbrechen</a>
+                <a href="{% url 'topics_list' %}" class="btn btn-secondary"><i class="bi bi-x-square"></i> Abbrechen</a>
             {% endif %}
         </div>
     </form>

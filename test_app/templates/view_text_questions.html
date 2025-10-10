@@ -4,11 +4,11 @@
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="bi bi-journal-text"></i>  Textfragen zum Thema: <span class="text-gradient">{{ topic.topic }}</span>
+            <i class="bi bi-journal-text"></i>  Textfragen zum Thema: <span class="text-gradient-txtquestion">{{ topic.topic }}</span>
         </h2>
         <a href="{% url 'add_text_questions_to_topic' topic.topic_id %}" 
            class="btn btn-lg btn-success shadow-lg">
-            ➕ Neue Frage hinzufügen
+            <i class="bi bi-plus-square"></i> Neue Frage hinzufügen
         </a>
     </div>
 
@@ -22,13 +22,13 @@
                 </div>
                 <div class="mt-2 mt-md-0">
                     <a href="{% url 'edit_text_question' question.id %}" class="btn btn-sm btn-outline-primary me-2">
-                        ✏️ Bearbeiten
+                        <i class="bi bi-pencil-square"></i> Bearbeiten
                     </a>
                     <form action="{% url 'delete_text_question' question.id %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-sm btn-outline-danger"
                                 onclick="return confirm('Möchtest du diese Frage wirklich löschen?');">
-                            🗑️ Löschen
+                            <i class="bi bi-trash2-fill"></i> Löschen
                         </button>
                     </form>
                 </div>
@@ -41,18 +41,4 @@
         </div>
     {% endif %}
 </div>
-
-<style>
-    .text-gradient {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .list-group-item {
-        transition: background 0.2s ease;
-    }
-    .list-group-item:hover {
-        background: #f8f9fa;
-    }
-</style>
 {% endblock %}

@@ -325,10 +325,33 @@ from django.db.models import Q
 
 @login_required
 def score_list_view(request):
+    # --- Basis-Query ---
     sessions = TestSession.objects.select_related("user", "topic__topic_type") \
         .prefetch_related("quiz_results__wrong_answers", "text_answers__question") \
         .order_by("-started_at")
 
+    # --- Filter ---
+    topic_filter = request.GET.get("topic")
+    type_filter = request.GET.get("topic_type")
+    first_name_filter = request.GET.get("first_name")
+    last_name_filter = request.GET.get("last_name")
+
+    if topic_filter:
+        sessions = sessions.filter(topic__topic__icontains=topic_filter)
+    if type_filter:
+        sessions = sessions.filter(topic__topic_type__name__icontains=type_filter)
+    if first_name_filter:
+        sessions = sessions.filter(user__first_name__icontains=first_name_filter)
+    if last_name_filter:
+        sessions = sessions.filter(user__last_name__icontains=last_name_filter)
+
+    # --- Vorschläge für Datalists ---
+    topic_suggestions = Topics.objects.values_list("topic", flat=True).distinct()
+    type_suggestions = TopicType.objects.values_list("name", flat=True).distinct()
+    first_name_suggestions = User.objects.exclude(first_name="").values_list("first_name", flat=True).distinct()
+    last_name_suggestions = User.objects.exclude(last_name="").values_list("last_name", flat=True).distinct()
+
+    # --- Ergebnisse aufbereiten (deine Logik bleibt gleich) ---
     results = []
     for session in sessions:
         quiz_result = session.quiz_results.first()
@@ -365,7 +388,14 @@ def score_list_view(request):
             "deletion_date": localtime(session.started_at + timedelta(days=60)),
         })
 
-    return render(request, "score_list.html", {"results": results})
+    return render(request, "score_list.html", {
+        "results": results,
+        "topic_suggestions": topic_suggestions,
+        "type_suggestions": type_suggestions,
+        "first_name_suggestions": first_name_suggestions,
+        "last_name_suggestions": last_name_suggestions,
+    })
+
 
 
 #Excel Datei Herunterladen 
@@ -439,72 +469,110 @@ def download_result_excel(request, id):
 
 @staff_member_required
 def download_all_results_excel(request):
-
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Alle Ergebnisse"
 
-    # Farben und Formatierungen
+    # Formatierungen
     bold_font = Font(bold=True)
-    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # Hellgrün
-    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")    # Hellrot
-    blue_fill = PatternFill(start_color="90D5FF", end_color="90D5FF", fill_type="solid")    # Hellrot
+    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    blue_fill = PatternFill(start_color="90D5FF", end_color="90D5FF", fill_type="solid")
 
-    # Kopfzeile
+    # Kopfzeilen
     headers = [
-        "Benutzer", "Vorname", "Nachname", 
-        "Thema", "Score", "Datum", 
-        "Frage", "Richtige Antwort", "Falsch Gewählt"
+        "Benutzer", "Vorname", "Nachname",
+        "Thema", "Thema-Typ", "Score", "Datum",
+        "Fragetyp", "Frage", "Gegebene Antwort", "Richtige Antwort / Max Score", "Punkte / Feedback"
     ]
     sheet.append(headers)
-
     for col in range(1, len(headers) + 1):
-        cell = sheet.cell(row=1, column=col)
-        cell.font = bold_font
+        sheet.cell(row=1, column=col).font = bold_font
 
-    # Datenzeilen schreiben
-    for result in QuizResult.objects.all().prefetch_related("wrong_answers", "user"):
+    # Ergebnisse
+    results = QuizResult.objects.select_related("user", "session").prefetch_related("wrong_answers")
+
+    for result in results:
+        user = result.user
+        topic_name = result.topic  # vermutlich CharField
+        topic_obj = Topics.objects.filter(topic=topic_name).select_related("topic_type").first()
+        topic_type = topic_obj.topic_type.name if topic_obj and topic_obj.topic_type else "Unbekannt"
+
+        # 1. MCQ-Ergebnisse
         wrongs = result.wrong_answers.all()
-        if wrongs:
+        if wrongs.exists():
             for wrong in wrongs:
                 sheet.append([
-                    result.user.username,
-                    result.user.first_name,
-                    result.user.last_name,
-                    str(result.topic),
+                    user.username,
+                    user.first_name,
+                    user.last_name,
+                    topic_name,
+                    topic_type,
                     result.score,
                     result.created_at.strftime("%d.%m.%Y %H:%M"),
+                    "MCQ",
                     wrong.question,
+                    wrong.selected_option,
                     wrong.correct_answer,
-                    wrong.selected_option
+                    "Falsch beantwortet"
                 ])
         else:
             sheet.append([
-                result.user.username,
-                result.user.first_name,
-                result.user.last_name,
-                str(result.topic),
+                user.username,
+                user.first_name,
+                user.last_name,
+                topic_name,
+                topic_type,
                 result.score,
                 result.created_at.strftime("%d.%m.%Y %H:%M"),
-                "100%", "Richtig", "Beantwortet"
+                "MCQ",
+                "-",
+                "-",
+                "Alle korrekt",
+                "✔️"
             ])
 
+        # 2. Textfragen dieser Session
+        if result.session:
+            text_answers = TextAnswer.objects.filter(session=result.session).select_related("question")
+            for ans in text_answers:
+                sheet.append([
+                    user.username,
+                    user.first_name,
+                    user.last_name,
+                    topic_name,
+                    topic_type,
+                    result.score,
+                    result.created_at.strftime("%d.%m.%Y %H:%M"),
+                    "Textfrage",
+                    ans.question.question_text if ans.question else "Unbekannt",
+                    ans.answer_text,
+                    f"Max: {ans.question.max_score if ans.question else '-'}",
+                    f"{ans.score if ans.score is not None else '-'} | {ans.feedback or ''}"
+                ])
 
-    richt_col = 8  
-    falsch_col = 9 
-    score_col = 5
+    # Farben setzen
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row):
-        row[richt_col - 1].fill = green_fill
-        row[falsch_col - 1].fill = red_fill
-        row[score_col - 1].fill = blue_fill
+        score_cell = row[5]  # Score-Spalte
+        score_cell.fill = blue_fill
 
-    # Download vorbereiten
+        qtype = row[7].value
+        if qtype == "MCQ":
+            gegeben_cell = row[9]
+            richtig_cell = row[10]
+            if row[11].value == "Falsch beantwortet":
+                gegeben_cell.fill = red_fill
+                richtig_cell.fill = green_fill
+
+    # Datei zurückgeben
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = 'attachment; filename="alle_ergebnisse.xlsx"'
     workbook.save(response)
     return response
+
+
 
 
 
