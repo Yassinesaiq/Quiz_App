@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block content %}
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="bi bi-journal-text"></i>  Textfragen zum Thema: <span class="text-gradient-txtquestion">{{ topic.topic }}</span>
+            <i class="bi bi-journal-text"></i>  Textfragen zum Thema: <span class="title-text-gradient">{{ topic.topic }}</span>
         </h2>
         <a href="{% url 'add_text_questions_to_topic' topic.topic_id %}" 
            class="btn btn-lg btn-success shadow-lg">

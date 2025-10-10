@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4"><i class="bi bi-plus-square"></i> Neue Textfrage zu: <span class="title-text-gradient">{{ topic.topic }}</span></h2>
+
+    <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label"><i class="bi bi-card-text"></i> Fragetext</label>
+            {{ form.question_text }}
+            {% if form.question_text.errors %}
+                <div class="text-danger small">{{ form.question_text.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><i class="bi bi-star-fill"></i> Maximale Punkte</label>
+            {{ form.max_score }}
+            {% if form.max_score.errors %}
+                <div class="text-danger small">{{ form.max_score.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label"><i class="bi bi-image-fill"></i> Bild (optional)</label>
+            {{ form.des_img }}
+            {% if form.des_img.errors %}
+                <div class="text-danger small">{{ form.des_img.errors }}</div>
+            {% endif %}
+        </div>
+
+        
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'view_text_questions_of_topic' topic.topic_id %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Abbrechen
+            </a>
+            <div>
+                <button type="submit" name="save" class="btn btn-success">
+                    <i class="bi bi-save"></i> Speichern
+                </button>
+                <button type="submit" name="save_continue" class="btn btn-primary">
+                    <i class="bi bi-save"></i> <i class="bi bi-arrow-right-square"></i> Speichern & nächste Frage
+                </button>
+
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

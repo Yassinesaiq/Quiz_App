@@ -233,11 +233,19 @@ def edit_question(request, question_id):
 
     if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, instance=question)
+        # Ensure topic_id is not changed
+        form.fields["topic_id"].disabled = True
         if form.is_valid():
-            form.save()
+            # Do not update topic_id even if POST data contains it
+            edited_question = form.save(commit=False)
+            edited_question.topic_id = question.topic_id
+            edited_question.save()
             return redirect('topic_questions', topic_id=question.topic_id.pk)
     else:
         form = QuestionForm(instance=question)
+        # Disable topic_id field in the form
+        if "topic_id" in form.fields:
+            form.fields["topic_id"].disabled = True
         logger = logging.getLogger(__name__)
         logger.info(question.des_img)
     return render(request, 'add_edit_question.html', {
@@ -718,9 +726,17 @@ def start_test_session(request):
     topic = Topics.objects.filter(topic=topic_name).first()
     if not topic:
         return Response({"error": "Topic not found"}, status=404)
+    
+    """  prüfen ob der User schon eine Session für dieses Topic hat
+    existing_session = TestSession.objects.filter(user=request.user, topic=topic).first()
+    if existing_session:
+        return Response({
+            "error": "Du hast diesen Test bereits gemacht."
+        }, status=403) """
 
     session = TestSession.objects.create(user=request.user, topic=topic)
-    return Response({"session_id": session.id})
+    return Response({ "message": "Session gestartet",
+                      "session_id": session.id})
 
 
 @login_required
@@ -753,32 +769,41 @@ def choose_topic_type(request):
 
 
 @staff_member_required
-def add_text_questions_to_topic(request, topic_id):
+def add_text_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
-    TextQuestionFormSet = inlineformset_factory(
-        Topics,
-        TextQuestion,
-        form=TextQuestionForm,
-        fields=("question_text", "max_score"),
-        extra=1,
-        can_delete=True
-    )
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+
+    # Only allow adding text questions for correct topic types
+    if topic_type not in ["Textfrage", "MCQ + Text"]:
+        messages.error(request, "Für diesen Thema-Typ können keine Textfragen hinzugefügt werden.")
+        return redirect("topics_list")
 
     if request.method == "POST":
-        formset = TextQuestionFormSet(request.POST, request.FILES, instance=topic)
-        if formset.is_valid():
-            formset.save()
-            messages.success(request, "Textfragen gespeichert.")
-            return redirect("text_questions_list", topic_id=topic.id)  #  zurück zur Fragenliste
-        else:
-            messages.error(request, "Bitte korrigiere die Fehler.")
-    else:
-        formset = TextQuestionFormSet(instance=topic)
+        form = TextQuestionForm(request.POST, request.FILES)
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.topic = topic
+            question.save()
 
-    return render(request, "create_text_questions.html", {
-        "formset": formset,
-        "topic": topic
+            if "save_continue" in request.POST:
+             return redirect("add_text_question", topic_id=topic.topic_id)
+            else:
+                messages.success(request, "Frage gespeichert.")
+                if topic_type == "MCQ + Text":
+                    return redirect("view_mcq_text_questions", topic_id=topic.topic_id)
+                else:
+                 return redirect("view_text_questions_of_topic", topic_id=topic.topic_id)
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler im Formular.")
+    else:
+        form = TextQuestionForm()
+
+    return render(request, "add_text_question.html", {
+        "form": form,
+        "topic": topic,
+        "topic_type": topic_type,
     })
+
 
 
 @staff_member_required
@@ -793,13 +818,17 @@ def view_text_questions_of_topic(request, topic_id):
 @staff_member_required
 def edit_text_question(request, question_id):
     question = get_object_or_404(TextQuestion, pk=question_id)
+    topic_type = question.topic.topic_type
     if request.method == "POST":
-        form = TextQuestionForm(request.POST, instance=question)
-        if form.is_valid():
+        form = TextQuestionForm(request.POST, request.FILES, instance=question)
+        if form.is_valid() and topic_type == "Textfrage":
             form.save()
             messages.success(request, "Textfrage wurde bearbeitet.")
             return redirect("view_text_questions_of_topic", topic_id=question.topic.pk)
-        else:
+        elif form.is_valid() and topic_type == "MCQ + Text":
+             messages.success(request, "Textfrage wurde bearbeitet.")
+             return redirect("view_mcq_text_questions", topic_id=question.topic.pk)
+        else :
             messages.error(request, "Bitte korrigiere die Fehler.")
     else:
         form = TextQuestionForm(instance=question)
@@ -812,10 +841,14 @@ def edit_text_question(request, question_id):
 
 @staff_member_required
 def delete_text_question(request, question_id):
-        question = get_object_or_404(TextQuestion, pk=question_id)
-        topic_id = question.topic.pk
-        question.delete()
-        messages.success(request, "Textfrage wurde gelöscht.")
+    question = get_object_or_404(TextQuestion, pk=question_id)
+    tp_type = question.topic.topic_type.name
+    topic_id = question.topic.pk
+    question.delete()
+    messages.success(request, "Textfrage wurde gelöscht.")
+    if tp_type == "MCQ + Text":
+        return redirect("view_mcq_text_questions", topic_id=topic_id)
+    else:
         return redirect("view_text_questions_of_topic", topic_id=topic_id)
 
 
@@ -829,74 +862,69 @@ def add_mcq_text_question_view(request, topic_id):
 
     # Schritt 1: Textfrage speichern
     if request.method == "POST" and "text_submit" in request.POST:
-        text_form = TextQuestionForm(request.POST)
-        # Exclude topic field from form
-        if "topic" in text_form.fields:
-            text_form.fields.pop("topic")
-        if text_form.is_valid():
-            text_question = text_form.save(commit=False)
-            text_question.topic = topic
-            text_question.save()
-            messages.success(request, "Textfrage gespeichert. Bitte füge nun eine passende MCQ-Frage hinzu.")
-            # Wechsel auf Schritt 2
-            return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=mcq&text_id={text_question.id}")
-        else:
-            messages.error(request, "Bitte korrigiere die Fehler in der Textfrage.")
-            step = "text"
-            return render(request, "add_mcq_text_question.html", {
-                "topic": topic,
-                "step": step,
-                "text_form": text_form,
-                "mcq_form": None,
-            })
+     text_form = TextQuestionForm(request.POST)
+     if "topic" in text_form.fields:
+        text_form.fields.pop("topic")
 
-    # Schritt 2: MCQ speichern
-    if request.method == "POST" and "mcq_submit" in request.POST:
-        text_question_id = request.POST.get("text_question_id")
-        text_question = get_object_or_404(TextQuestion, pk=text_question_id, topic=topic)
-        mcq_form = QuestionForm(request.POST, request.FILES, current_topic=topic)
-        if mcq_form.is_valid():
-            mcq_question = mcq_form.save(commit=False)
-            mcq_question.topic_id = topic
-            # 🔗 Optionale Verknüpfung
-            mcq_question.linked_text_question = text_question  
-            mcq_question.save()
-            messages.success(request, "MCQ + Textfrage erfolgreich gespeichert.")
-            return redirect("topic_questions", topic_id=topic.pk)
-        else:
-            messages.error(request, "Bitte korrigiere die Fehler in der MCQ-Frage.")
-            step = "mcq"
+     if text_form.is_valid():
+        text_question = text_form.save(commit=False)
+        text_question.topic = topic
+        text_question.save()
+        messages.success(request, "Textfrage gespeichert. Du kannst weitere hinzufügen oder zu MCQ-Fragen wechseln.")
+
+        # statt sofort zu mcq -> wieder Text-Form zeigen, aber mit text_question für den Button
+        text_form = TextQuestionForm()  
+        return render(request, "add_mcq_text_question.html", {
+            "topic": topic,
+            "step": "text",
+            "text_form": text_form,
+            "mcq_form": None,
+            "text_question": text_question,  #  für den Button
+        })
+        # Initial laden: Schritt 1 oder Schritt 2
+    if step == "mcq":
+            text_question_id = request.GET.get("text_id")
+            if not text_question_id:
+                messages.error(request, "Keine Textfrage angegeben. Bitte zuerst eine Textfrage anlegen.")
+                return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=text")
+            try:
+                text_question = TextQuestion.objects.get(pk=text_question_id, topic=topic)
+            except TextQuestion.DoesNotExist:
+                messages.error(request, "Textfrage nicht gefunden. Bitte erneut anlegen.")
+                return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=text")
+            if request.method == "POST" and "mcq_submit" in request.POST:
+                mcq_form = QuestionForm(request.POST, request.FILES, current_topic=topic)
+                if mcq_form.is_valid():
+                    question = mcq_form.save(commit=False)
+                    question.topic_id = topic
+                    question.save()
+                    messages.success(request, "MCQ-Frage gespeichert.")
+                    # Nach dem Speichern: Entweder weitere MCQ-Frage oder zurück zur Übersicht
+                    if "save_continue" in request.POST:
+                        return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=mcq&text_id={text_question_id}")
+                    else:
+                        return redirect("view_mcq_text_questions", topic_id=topic.topic_id)
+                else:
+                    messages.error(request, "Bitte korrigiere die Fehler im MCQ-Formular.")
+            else:
+                mcq_form = QuestionForm(current_topic=topic)
             return render(request, "add_mcq_text_question.html", {
                 "topic": topic,
-                "step": step,
+                "step": "mcq",
                 "text_form": None,
                 "mcq_form": mcq_form,
                 "text_question": text_question
             })
 
-    # Initial laden: Schritt 1 oder Schritt 2
-    if step == "mcq":
-        text_question_id = request.GET.get("text_id")
-        text_question = get_object_or_404(TextQuestion, pk=text_question_id, topic=topic)
-        mcq_form = QuestionForm(current_topic=topic)
-        return render(request, "add_mcq_text_question.html", {
-            "topic": topic,
-            "step": "mcq",
-            "text_form": None,
-            "mcq_form": mcq_form,
-            "text_question": text_question
-        })
-    else:
-        text_form = TextQuestionForm()
-        # Exclude topic field from form
-        if "topic" in text_form.fields:
-            text_form.fields.pop("topic")
-        return render(request, "add_mcq_text_question.html", {
-            "topic": topic,
-            "step": "text",
-            "text_form": text_form,
-            "mcq_form": None
-        })
+
+    # Default: Schritt 1 (Textfrage anzeigen)
+    text_form = TextQuestionForm()
+    return render(request, "add_mcq_text_question.html", {
+        "topic": topic,
+        "step": "text",
+        "text_form": text_form,
+        "mcq_form": None,
+    })
 
 @login_required
 def view_mcq_text_questions(request, topic_id):
@@ -918,4 +946,30 @@ def view_mcq_text_questions(request, topic_id):
         },
     )
 
+@login_required
+def view_add_mcq_questions(request, topic_id):
+        topic = get_object_or_404(Topics, pk=topic_id)
 
+        if request.method == "POST":
+            form = QuestionForm(request.POST, request.FILES)
+            # topic_id darf nicht geändert werden, daher Feld deaktivieren
+            if "topic_id" in form.fields:
+                form.fields["topic_id"].disabled = True
+            if form.is_valid():
+                question = form.save(commit=False)
+                question.topic_id = topic  # Thema bleibt unverändert
+                question.save()
+                if "save_continue" in request.POST:
+                    return redirect("view_add_mcq_questions", topic_id=topic.pk)
+                else:
+                    return redirect("topic_questions", topic_id=topic.pk)
+        else:
+            form = QuestionForm()
+            if "topic_id" in form.fields:
+                form.fields["topic_id"].disabled = True
+
+        return render(request, "add_edit_question.html", {
+            "form": form,
+            "title": f"Neue MCQ-Frage für: {topic.topic}",
+            "topic": topic
+        })

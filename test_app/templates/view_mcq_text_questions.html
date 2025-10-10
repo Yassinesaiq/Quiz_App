@@ -1,12 +1,16 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4"><i class="bi bi-journal-text"></i> Übersicht für Thema: <span class="text-gradient">{{ topic.topic }}</span></h2>
+    <h2 class="mb-4"><i class="bi bi-journal-text"></i> Übersicht für Thema: <span class="title-text-gradient">{{ topic.topic }}</span></h2>
     <p class="mb-3" >{{topic.description}}</p>
-
+   
     <!-- Textfragen -->
+    <div class="d-flex justify-content-between">
     <h4 class="mb-3"><i class="bi bi-card-text"></i> Textfragen</h4>
+    <a href="{% url 'add_text_questions_to_topic' topic.topic_id %}" class="btn btn-success"><i class="bi bi-plus-square"></i> Neue Frage hinzufügen</a>
+    </div>
+    <hr>
     {% if text_questions %}
         <ul class="list-group mb-4">
             {% for question in text_questions %}
@@ -34,7 +38,11 @@
     {% endif %}
 
     <!-- MCQ-Fragen -->
-    <h4 class="mb-3"><i class="bi bi-ui-checks"></i> MCQ-Fragen</h4>
+    <div class="d-flex justify-content-between">
+    <h4 class="mb-3"><i class="bi bi-ui-checks"></i> MCQ Frage</h4>
+    <a href="{% url 'view_add_mcq_questions' topic.topic_id %}" class="btn btn-success"><i class="bi bi-plus-square"></i> Neue Frage hinzufügen</a>
+    </div>
+    <hr>
     {% if mcq_questions %}
         <ul class="list-group mb-4">
             {% for question in mcq_questions %}
@@ -63,11 +71,4 @@
     {% endif %}
 </div>
 
-<style>
-    .text-gradient {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-</style>
 {% endblock %}

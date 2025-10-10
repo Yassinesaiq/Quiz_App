@@ -50,11 +50,20 @@ class QuestionForm(forms.ModelForm):
 
 from .models import TextQuestion
 
+from django import forms
+from .models import TextQuestion
+
 class TextQuestionForm(forms.ModelForm):
     class Meta:
         model = TextQuestion
-        fields = ("question_text", "max_score","des_img")  # passe an deine Felder an
+        fields = ["question_text", "max_score", "des_img"]
+        labels = {
+            "question_text": "Fragetext",
+            "max_score": "Maximale Punkte",
+            "des_img": "Bild (optional)"
+        }
         widgets = {
             "question_text": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "max_score": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": 0.5}),
+            "max_score": forms.NumberInput(attrs={"class": "form-control", "step": "0.5"}),
+            "des_img": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }

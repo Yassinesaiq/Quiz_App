@@ -26,9 +26,19 @@
                             {{ ans.user.first_name }} {{ ans.user.last_name }}
                         </div>
                     </td>
-                    <td>{{ ans.question.question_text }}</td>
                     <td>
-                        <span class="badge bg-light text-dark">{{ ans.answer_text }}</span>
+                        {% if ans.question.question_text|length > 80 %}
+                            <span>{{ ans.question.question_text|slice:":80" }}...</span>
+                        {% else %}
+                            <span>{{ ans.question.question_text }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ans.answer_text|length > 80 %}
+                            <span >{{ ans.answer_text|slice:":80" }}...</span>
+                        {% else %}
+                            <span >{{ ans.answer_text }}</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if ans.is_reviewed %}

@@ -33,6 +33,8 @@ router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'questions', views.QuestionsViewset)
 router.register(r'topic', views.TopicViewset)
+router.register(r'text_questions',views.TextQuestionViewset)
+
 
 
 # URL patterns
@@ -50,6 +52,7 @@ urlpatterns = [
     path('questions/<int:question_id>/edit/', views.edit_question, name='edit_question'),
     path('topics/<int:topic_id>/questions/', views.topic_questions, name='topic_questions'),
     path('questions/<int:question_id>/delete/', views.delete_question, name='delete_question'),
+    path('topics/<int:topic_id>/add-text-question/', views.add_text_question, name='add_text_question'),
     path('', views.dashboard, name='dashboard'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
@@ -69,12 +72,13 @@ urlpatterns = [
     path("api/start-session/", views.start_test_session, name="start_test_session"),
     path("session/<int:session_id>/delete/", views.delete_session, name="delete_session"),
     path("topics/choose-type/", views.choose_topic_type, name="choose_topic_type"),
-    path('topics/<int:topic_id>/add-text-questions/', views.add_text_questions_to_topic, name='add_text_questions_to_topic'),
-    path('topics/<int:topic_id>/view_text_questions_of_topic/', views.view_text_questions_of_topic, name='view_text_questions_of_topic'),
+    path('topics/<int:topic_id>/add-text-questions/', views.add_text_question, name='add_text_questions_to_topic'),
+    path("topics/<int:topic_id>/text-questions/",views.view_text_questions_of_topic,name="view_text_questions_of_topic"),
     path('textquestion/<int:question_id>/edit/', views.edit_text_question, name='edit_text_question'),
     path('textquestion/<int:question_id>/delete/', views.delete_text_question, name='delete_text_question'),
     path('Mcq_text/<int:topic_id>/add_mcq_text',views.add_mcq_text_question_view,name='add_mcq_text_question_view'),
-    path("topics/<int:topic_id>/mcq-text/", views.view_mcq_text_questions, name="view_mcq_text_questions")
+    path("topics/<int:topic_id>/mcq-text/", views.view_mcq_text_questions, name="view_mcq_text_questions"),
+    path("mcq-text/<int:topic_id>/add_mcq_question",views.view_add_mcq_questions,name="view_add_mcq_questions")
 
 
     

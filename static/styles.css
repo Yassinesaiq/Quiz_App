@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
 
+span.title-text-gradient {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+         background-clip: text;
+        -webkit-text-fill-color: transparent;
+}
+
 /* =========================
   Farbvariablen (Global)
   ========================= */
@@ -262,7 +269,7 @@ h1.title {
   transition: all 0.3s ease;
 }
 
-a.btn-outline-primary:hover {
+.fl-container a.btn-outline-primary:hover {
   background-color: #431569ff;
   color: white;
 }
@@ -372,13 +379,6 @@ a.btn-outline-primary:hover {
    margin-bottom: 10px;
 }
 
-/* Gradient text for MCQ questions (Other Page) */
-.text-gradient-textmcqquestions {
-   background: linear-gradient(90deg, #667eea, #764ba2);
-   -webkit-background-clip: text;
-   background-clip: text;
-   -webkit-text-fill-color: transparent;
-}
 
 /* =========================
   Login Page Styles
@@ -520,3 +520,5 @@ h1.title {
     padding: 8px 12px;
     border-radius: 8px;
 }
+
+
