@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .nav-pills .nav-link {
+        color: #6c757d;
+        border-radius: 10px;
+        padding: 12px 20px;
+        margin: 4px 0;
+        transition: all 0.3s ease;
+    }
+
+    .nav-pills .nav-link:hover {
+        background-color: #f8f9fa;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #fff;
+        color: #4158D0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+
+
+
+</style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<div class="bg-light">
+    <div class="container py-5">
+        <div class="row">
+            <!-- Profile Header -->
+            <div class="col-12 mb-4">
+                <div class="profile-header position-relative mb-4"
+                
+                     style="background: linear-gradient({{ user_profile.cover_angle|default:135 }}deg, {{ user_profile.gradiantcolor1|default:'#4158D0' }} 0%, {{ user_profile.gradiantcolor2|default:'#C850C0' }} 100%);">
+                    <div class="position-absolute top-0 end-0 p-3 cover-controls">
+                        <button id="edit-cover-btn" class="btn btn-light"><i class="fas fa-edit me-2"></i>Edit Cover</button>
+                        <div id="cover-editor" class="card p-3 shadow-sm cover-editor">
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Color 1</label>
+                                <input type="color" id="cover-color-1" value="#4158D0" class="form-control form-control-sm">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Color 2</label>
+                                <input type="color" id="cover-color-2" value="#fcfcfc" class="form-control form-control-sm">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Angle (<span id="cover-angle-val">135</span>°)</label>
+                                <input type="range" id="cover-angle" min="0" max="360" value="135" class="form-range">
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button id="cover-apply" type="button" class="btn btn-primary btn-sm">Apply</button>
+                                <button id="cover-close" type="button" class="btn btn-secondary btn-sm">Close</button>
+                            </div>
+                            <small class="text-muted d-block mt-2">Changes are previewed immediately. Click "Speichern" below to persist.</small>
+                        </div>
+                    </div>
+                    <!-- hidden gradient inputs to be filled by JS -->
+                    
+                    <script>
+                    (function(){
+                        const btn = document.getElementById('edit-cover-btn');
+                        const editor = document.getElementById('cover-editor');
+                        const color1 = document.getElementById('cover-color-1');
+                        const color2 = document.getElementById('cover-color-2');
+                        const angle = document.getElementById('cover-angle');
+                        const angleVal = document.getElementById('cover-angle-val');
+                        const apply = document.getElementById('cover-apply');
+                        const close = document.getElementById('cover-close');
+                        const header = document.querySelector('.profile-header');
+
+                        // Toggle editor
+                        btn.addEventListener('click', () => editor.style.display = (editor.style.display === 'none' || !editor.style.display) ? 'block' : 'none');
+                        close.addEventListener('click', () => editor.style.display = 'none');
+
+                        // update angle label
+                        angle.addEventListener('input', () => angleVal.textContent = angle.value);
+
+                        // Apply preview and attach hidden inputs to main form so values persist on submit
+                        apply.addEventListener('click', () => {
+                            const c1 = color1.value;
+                            const c2 = color2.value;
+                            const a = angle.value;
+                            // preview
+                            header.style.background = `linear-gradient(${a}deg, ${c1} 0%, ${c2} 100%)`;
+
+                            // attach/update hidden inputs in the first form on the page
+                            const form = document.getElementById('profile-form');
+                            if (form) {
+                                const setHidden = (name, value) => {
+                                    let inp = form.querySelector(`input[name="${name}"]`);
+                                    if (!inp) {
+                                        inp = document.createElement('input');
+                                        inp.type = 'hidden';
+                                        inp.name = name;
+                                        form.appendChild(inp);
+                                    }
+                                    inp.value = value;
+                                };
+                                setHidden('gradiantcolor1', c1);
+                                setHidden('gradiantcolor2', c2);
+                                setHidden('cover_angle', a);
+                            }
+                        });
+
+                        // Optional: initialize editor values from existing computed style
+                        (function initFromHeader() {
+                            const cs = getComputedStyle(header);
+                            const bg = cs.background || cs.backgroundImage || '';
+                            const m = bg.match(/linear-gradient\(\s*([0-9]+)deg\s*,\s*(#[0-9a-fA-F]{3,8})[^,]*,\s*(#[0-9a-fA-F]{3,8})/);
+                            if (m) {
+                                angle.value = m[1];
+                                angleVal.textContent = m[1];
+                                color1.value = m[2];
+                                color2.value = m[3];
+                            }
+                        })();
+                    })();
+                    </script>
+                </div>
+
+                <div class="text-center ">
+                    <div class="position-relative d-inline-block">
+                        {% if user_profile.profile_image %}
+                            <img 
+                                src="{{ user_profile.profile_image.url }}" 
+                                class="rounded-circle profile-pic" 
+                                alt="Profile Picture"      
+                            >
+                        {% else %}
+                            <!-- fallback to random savatar or a static default -->
+                            <img src="{% static 'images/default_profile2.jpg' %}" class="rounded-circle profile-pic" alt="Profile Picture">
+                        {% endif %}
+
+                        {% if profile_form %}
+                            <!-- file input for uploading a new profile image -->
+                            <input id="id_profile_image" name="profile_image" type="file" accept="image/*" class="visually-hidden">
+                            <label for="id_profile_image" class="btn btn-primary btn-sm position-absolute bottom-0 end-0 rounded-circle">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                        {% else %}
+                            <button class="btn btn-primary btn-sm position-absolute bottom-0 end-0 rounded-circle">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="mt-3 mb-1">
+                        {{ user.first_name|default:"Alex" }} {{ user.last_name|default:"Johnson" }}
+                    </h3>
+                    <p class="text-muted mb-3">
+                        {{ user_profile.title|default:"Software Entwickler" }}
+                    </p>
+
+                    <div class="d-flex justify-content-center gap-2 mb-4">
+                        <a class="btn btn-outline-primary" href="mailto:{% if user.email %}{{ user.email }}{% else %}{{ user.first_name|default:'Yassine' }}.{{ user.last_name|default:'Saiq' }}@muehlbauer.de{% endif %}">
+                            <i class="fas fa-envelope me-2"></i>Message
+                        </a>
+                        {% with search=user.first_name|add:" "|add:user.last_name %}
+                        <a class="btn btn-primary" href="https://intern.muehlbauer.de/employee-directory?SearchString={{ search|urlencode }}&Department=&Location=&JobTitle=&LanguageID=&LevelID=&PositionID=&PageES=">
+                            <i class="fas fa-user me-2"></i>Mehr infos
+                        </a>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-12">
+                <form method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm" id="profile-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="gradiantcolor1" value="{{ user_profile.gradiantcolor1|default:'#4158D0' }}">
+                    <input type="hidden" name="gradiantcolor2" value="{{ user_profile.gradiantcolor2|default:'#C850C0' }}">
+                    <input type="hidden" name="cover_angle" value="{{ user_profile.cover_angle|default:135 }}">
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            <!-- Sidebar -->
+                            <div class="col-lg-3 border-end profile-sidebar">
+                                <div class="p-4">
+                                    <div class="nav flex-column nav-pills">
+                                        {% with search=user.first_name|add:" "|add:user.last_name %}
+                                            <a class="nav-link active" href="#">
+                                                <i class="fas fa-user me-2"></i>Personal Info
+                                            </a>
+                                        {% endwith %}
+                                        <a class="nav-link" href="#"><i class="fas fa-lock me-2"></i>Security</a>
+                                        <a class="nav-link" href="#"><i class="fas fa-chart-line me-2"></i>Activity</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Content Area -->
+                            <div class="col-lg-9">
+                                <div class="p-4">
+                                    <!-- Personal Information -->
+                                    <div class="mb-4">
+                                        <h5 class="mb-4">Personal Information</h5>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">First Name</label>
+                                                {% if user_form %}
+                                                    {{ user_form.first_name }}
+                                                {% else %}
+                                                    <input type="text" name="first_name" class="form-control" value="{{ user.first_name|default:'Alex' }}">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Last Name</label>
+                                                {% if user_form %}
+                                                    {{ user_form.last_name }}
+                                                {% else %}
+                                                    <input type="text" name="last_name" class="form-control" value="{{ user.last_name|default:'Johnson' }}">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Email</label>
+                                                {% if user_form %}
+                                                    {{ user_form.email }}
+                                                {% else %}
+                                                    <input type="email" name="email" class="form-control" value="{{ user.email|default:'alex.johnson@example.com' }}">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Phone</label>
+                                                {% if profile_form %}
+                                                    {{ profile_form.phone }}
+                                                {% else %}
+                                                    <input type="tel" name="phone" class="form-control" value="{{ user_profile.phone|default:'+1 (555) 123-4567' }}">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Bio</label>
+                                                {% if profile_form %}
+                                                    {{ profile_form.bio }}
+                                                {% else %}
+                                                    <textarea name="bio" class="form-control" rows="4">{% if user_profile.bio %}{{ user_profile.bio }}{% else %}Product designer with 5+ years of experience in creating user-centered digital solutions. Passionate about solving complex problems through simple and elegant designs.{% endif %}</textarea>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i> Speichern
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

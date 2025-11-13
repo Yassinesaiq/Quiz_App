@@ -8,6 +8,7 @@
     
     <!-- Bootstrap + Google Fonts + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         .body {
@@ -29,9 +30,11 @@
         }
 
         .login-card h2 {
-            font-weight: 700;
+            font-weight: bold;
             margin-bottom: 1.5rem;
-            color: #007BFF;
+            color: #383737ff;
+            
+            
         }
 
         .form-label {
@@ -39,13 +42,13 @@
         }
 
         .btn-primary {
-            background-color: #007BFF;
+            background-color: #3a008b;
             border: none;
             font-weight: 600;
         }
 
         .btn-primary:hover {
-            background-color: #0056b3;
+            background-color: #5801d1ff;
         }
 
         .alert {
@@ -57,41 +60,48 @@
             margin: 0 auto 1.5rem;
             max-width: 160px;
         }
+        @font-face {
+            font-family: 'Supercomic';
+            src: url("{% static 'fonts/supercomic.ttf' %}") format("truetype");
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+    
     </style>
 </head>
 <body class="body">
 
 <div class="login-card">
     <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo" />
-    <h2 class="text-center">Anmeldeung</h2>
+    <h2 class="text-center">Anmeldung</h2>
 
     <form method="post" novalidate>
     {% csrf_token %}
     
     <div class="mb-3">
-        <label for="{{ form.username.id_for_label }}" class="form-label">👤 Benutzername</label>
-        <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}"
-               class="form-control" placeholder="Geben Sie Ihren Benutzernamen ein"
-               value="{{ form.username.value|default_if_none:'' }}">
+        <label for="{{ form.username.id_for_label }}" class="form-label"><i style="color:#3a008b;font-size:27px" class="bi bi-person-fill-lock"></i> Benutzername</label>
+        <input type="text" name="username" id="id_username"
+        class="form-control" placeholder="Geben Sie Ihren Benutzernamen ein"value="{{ form.username.value|default_if_none:'' }}">              
         {% if form.username.errors %}
             <div class="text-danger small">{{ form.username.errors|striptags }}</div>
         {% endif %}
     </div>
 
     <div class="mb-3">
-        <label for="{{ form.password.id_for_label }}" class="form-label">🔒 Passwort</label>
-        <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
-               class="form-control" placeholder="●●●●●●●●●●">
+        <label for="{{ form.password.id_for_label }}" class="form-label"><i style="color:#ff2a0c;font-size:23px" class="bi bi-lock-fill"></i> Passwort</label>
+        <input type="password" name="password" id="id_password"
+       class="form-control" placeholder="●●●●●●●●●●">
         {% if form.password.errors %}
             <div class="text-danger small">{{ form.password.errors|striptags }}</div>
         {% endif %}
     </div>
 
-    <button type="submit" class="btn btn-primary w-100">🚀 Einloggen</button>
+    <button type="submit" class="btn btn-primary w-100"><i style="font-size:20px" class="bi bi-rocket-takeoff"></i> Einloggen</button>
 </form>
     {% if form.errors %}
         <div class="alert alert-danger mt-3 text-center">
-            ❌ Ungültige Anmeldeinformationen. Bitte versuchen Sie es erneut.
+            <i style="color:red;" class="bi bi-x-octagon"></i> Ungültige Anmeldeinformationen. Bitte versuchen Sie es erneut.
         </div>
     {% endif %}
 </div>

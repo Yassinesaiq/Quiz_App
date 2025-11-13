@@ -24,3 +24,6 @@ admin.site.register(TextAnswer)
 admin.site.register(TextQuestion)
 admin.site.register(TestSession)
 admin.site.register(TopicType)
+admin.site.register(UserProfile)
+admin.site.register(Remark)
+

@@ -7,9 +7,9 @@ from .models import *
 from django.shortcuts import *
 from .forms import *
 from django.db import transaction
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required ,user_passes_test
 import logging
-from django.contrib.auth import logout , authenticate
+from django.contrib.auth import logout , authenticate , login
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -33,7 +33,8 @@ from rest_framework import status
 from django.urls import reverse
 from django.forms import modelform_factory, inlineformset_factory
 
-
+def is_admin_or_staff(user):
+    return user.is_superuser or user.is_staff
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -82,7 +83,7 @@ class TextQuestionViewset(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     permission_classes = [IsAuthenticated]
    
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def topics_list(request):
     topic_type = request.GET.get('topic_type')
@@ -92,6 +93,7 @@ def topics_list(request):
         topics = Topics.objects.all()
     return render(request, 'topics_list.html', {'topics': topics, 'topic_type': topic_type})
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def topic_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -109,6 +111,7 @@ def topic_questions(request, topic_id):
     })
 
 # ---------------- Topics ---------------- #
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def add_topic(request):
     #  topic_type VORHER initialisieren, damit es immer existiert
@@ -144,7 +147,7 @@ def add_topic(request):
         }
     )
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -172,7 +175,7 @@ def edit_topic(request, topic_id):
         }
     )
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -190,6 +193,7 @@ def delete_topic(request, topic_id):
 
 
 # ---------------- Questions ---------------- #
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def add_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -226,7 +230,7 @@ def add_question(request, topic_id):
     )
 
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def edit_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
@@ -254,7 +258,7 @@ def edit_question(request, question_id):
         'topic': question.topic_id
     })
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def delete_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
@@ -262,7 +266,7 @@ def delete_question(request, question_id):
     question.delete()
     return redirect('topic_questions', topic_id=topic_id)
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def dashboard(request):
     topics_count = Topics.objects.count()
@@ -283,7 +287,7 @@ def logout_view(request):
     return redirect('login')  # or use 'home' or a custom page
 
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def toggle_topic_visibility(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -292,16 +296,38 @@ def toggle_topic_visibility(request, topic_id):
     return redirect('topics_list')
 
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
+from django.contrib.auth import authenticate, login
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
 
-        if user:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key})
-        return Response({"error": "Invalid credentials"}, status=400)
+def login_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        print(f"DEBUG → username: {username}, password: {password}")  # optional debug
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            groups = [g.name.lower() for g in user.groups.all()]
+            print("DEBUG → groups:", groups)
+
+            # ✅ redirect by role
+            if "azubis" in groups:
+                return redirect('azubi_dashboard')
+            elif user.is_superuser or user.is_staff:
+                return redirect('dashboard')
+            else:
+                return redirect('user_profile')
+        else:
+            messages.error(request, "Ungültiger Benutzername oder Passwort.")
+            print("DEBUG → Authentication failed")
+            return render(request, 'login.html', {'form': {}})
+
+    return render(request, 'login.html', {'form': {}})
+
     
         
 @api_view(['GET'])
@@ -330,13 +356,16 @@ class SubmitResultView(APIView):
         return Response(serializer.errors, status=400)
 
 from django.db.models import Q
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def score_list_view(request):
     # --- Basis-Query ---
-    sessions = TestSession.objects.select_related("user", "topic__topic_type") \
-        .prefetch_related("quiz_results__wrong_answers", "text_answers__question") \
+    sessions = (
+        TestSession.objects
+        .select_related("user", "user__profile", "topic__topic_type")  # ✅ Profil des Users mitladen
+        .prefetch_related("quiz_results__wrong_answers", "text_answers__question")
         .order_by("-started_at")
+    )
 
     # --- Filter ---
     topic_filter = request.GET.get("topic")
@@ -359,7 +388,7 @@ def score_list_view(request):
     first_name_suggestions = User.objects.exclude(first_name="").values_list("first_name", flat=True).distinct()
     last_name_suggestions = User.objects.exclude(last_name="").values_list("last_name", flat=True).distinct()
 
-    # --- Ergebnisse aufbereiten (deine Logik bleibt gleich) ---
+    # --- Ergebnisse aufbereiten ---
     results = []
     for session in sessions:
         quiz_result = session.quiz_results.first()
@@ -380,6 +409,7 @@ def score_list_view(request):
         results.append({
             "session_id": session.id,
             "user": session.user,
+            "user_profile": getattr(session.user, "profile", None),  # ✅ sicherstellen, dass ein Profil existiert
             "topic": session.topic.topic,
             "topic_type": session.topic.topic_type.name if session.topic.topic_type else "Unbekannt",
             "quiz_result": quiz_result,
@@ -396,6 +426,7 @@ def score_list_view(request):
             "deletion_date": localtime(session.started_at + timedelta(days=60)),
         })
 
+    # --- Template Rendern ---
     return render(request, "score_list.html", {
         "results": results,
         "topic_suggestions": topic_suggestions,
@@ -405,10 +436,9 @@ def score_list_view(request):
     })
 
 
-
 #Excel Datei Herunterladen 
 #https://openpyxl.readthedocs.io/en/stable/
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def download_result_excel(request, id):
     if not request.user.is_staff:
@@ -474,7 +504,7 @@ def download_result_excel(request, id):
     workbook.save(response)
     return response
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def download_all_results_excel(request):
     workbook = Workbook()
@@ -583,7 +613,7 @@ def download_all_results_excel(request):
 
 
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 @transaction.atomic
 def delete_result(request, id):
@@ -612,6 +642,7 @@ def delete_result(request, id):
 
 from django.db import transaction
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 @transaction.atomic
 def delete_all_result(request):
@@ -634,7 +665,7 @@ def text_answers_list(request):
         "session_id": session_id
     })
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def review_text_answer(request, answer_id):
     answer = get_object_or_404(TextAnswer, pk=answer_id)
@@ -719,6 +750,7 @@ class SubmitTextAnswerAPI(APIView):
         )
 
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def start_test_session(request):
@@ -751,6 +783,7 @@ def delete_session(request, session_id):
     return redirect('score_list_view')
 
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def choose_topic_type(request):
     if request.method == "POST":
@@ -767,7 +800,7 @@ def choose_topic_type(request):
     return render(request, "choose_topic_type.html")
     
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def add_text_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -806,7 +839,7 @@ def add_text_question(request, topic_id):
 
 
 
-@staff_member_required
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 def view_text_questions_of_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     text_questions = TextQuestion.objects.filter(topic=topic)
@@ -815,7 +848,7 @@ def view_text_questions_of_topic(request, topic_id):
         "text_questions": text_questions
     })
 
-@staff_member_required
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 def edit_text_question(request, question_id):
     question = get_object_or_404(TextQuestion, pk=question_id)
     topic_type = question.topic.topic_type
@@ -839,7 +872,7 @@ def edit_text_question(request, question_id):
     })
 
 
-@staff_member_required
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 def delete_text_question(request, question_id):
     question = get_object_or_404(TextQuestion, pk=question_id)
     tp_type = question.topic.topic_type.name
@@ -852,7 +885,7 @@ def delete_text_question(request, question_id):
         return redirect("view_text_questions_of_topic", topic_id=topic_id)
 
 
-@staff_member_required
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 def add_mcq_text_question_view(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
 
@@ -926,6 +959,7 @@ def add_mcq_text_question_view(request, topic_id):
         "mcq_form": None,
     })
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def view_mcq_text_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -946,6 +980,7 @@ def view_mcq_text_questions(request, topic_id):
         },
     )
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def view_add_mcq_questions(request, topic_id):
         topic = get_object_or_404(Topics, pk=topic_id)
@@ -973,3 +1008,102 @@ def view_add_mcq_questions(request, topic_id):
             "title": f"Neue MCQ-Frage für: {topic.topic}",
             "topic": topic
         })
+
+
+# views.py
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import UserForm, UserProfileForm
+
+
+@login_required
+def user_profile_view(request):
+    user = request.user
+    profile, created = UserProfile.objects.get_or_create(user=user)
+
+    # determine template by role
+    is_azubi = user.groups.filter(name__iexact="azubis").exists()
+    template_name = "user_profile_azubi.html" if is_azubi else "user_profile.html"
+
+    if request.method == "POST":
+        user_form = UserForm(request.POST, instance=user)
+        profile_form = UserProfileForm(request.POST, request.FILES, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile = profile_form.save(commit=False)
+            # Farben extra speichern, falls sie aus JS-Hidden-Feldern kommen
+            profile.gradiantcolor1 = request.POST.get('gradiantcolor1', profile.gradiantcolor1)
+            profile.gradiantcolor2 = request.POST.get('gradiantcolor2', profile.gradiantcolor2)
+            profile.cover_angle = request.POST.get('cover_angle', profile.cover_angle)
+            profile.save()
+
+            messages.success(request, "Profil erfolgreich aktualisiert!")
+            # Kein redirect – stattdessen Template neu rendern mit aktuellen Daten
+        else:
+            messages.error(request, "Bitte überprüfe deine Eingaben.")
+    else:
+        user_form = UserForm(instance=user)
+        profile_form = UserProfileForm(instance=profile)
+
+    # Profil nach Speichern neu laden (wichtig)
+    profile.refresh_from_db()
+
+    return render(request, template_name, {
+        "user_form": user_form,
+        "profile_form": profile_form,
+        "user_profile": profile,
+    })
+
+@user_passes_test(lambda u: u.groups.filter(name__iexact='azubis').exists(), login_url='/')
+@login_required
+def user_dashboard(request):
+    user = request.user
+
+    sessions = (
+        TestSession.objects.filter(user=user)
+        .select_related("topic__topic_type")
+        .prefetch_related("quiz_results__wrong_answers", "text_answers__question")
+        .order_by("-started_at")
+    )
+
+    results = []
+
+    for s in sessions:
+        quiz = s.quiz_results.first()
+        text_answers = s.text_answers.all()
+
+        quiz_score = quiz.score if quiz else 0
+        quiz_max = quiz.maxsize if quiz else 0
+
+        text_score = sum(a.score for a in text_answers if a.score is not None)
+        text_max = sum(a.question.max_score for a in text_answers)
+
+        total_score = quiz_score + text_score
+        total_max = quiz_max + text_max
+        percent = int((total_score / total_max) * 100) if total_max > 0 else 0
+
+        
+
+        
+
+        results.append({
+            "topic": s.topic.topic,
+            "type": s.topic.topic_type.name if s.topic.topic_type else "Unbekannt",
+            "quiz_score": quiz_score,
+            "quiz_max": quiz_max,
+            "wrong_answers": quiz.wrong_answers.all() if quiz else [],
+            "text_answers": text_answers,
+            "total_score": total_score,
+            "total_max": total_max,
+            "percent": percent,
+            "created_at": localtime(s.started_at + timedelta(hours=2)), # wann (Datum/Uhrzeit) anzeigen
+        })
+
+    remarks = Remark.objects.filter(user=user).order_by("-created_at")
+
+    return render(request, "azubi_dashboard.html", {
+        "results": results,
+        "remarks": remarks
+    })

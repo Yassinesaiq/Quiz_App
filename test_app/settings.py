@@ -16,7 +16,6 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -30,8 +29,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '10.0.2.2',
-    '192.168.26.77:38640',  
-        
+    '192.168.26.77:38640',          
 ]
 
 
@@ -47,7 +45,7 @@ INSTALLED_APPS = [
     'test_app',
     'rest_framework',
     'rest_framework.authtoken',
-    "widget_tweaks"
+    'widget_tweaks',
 
 ]
 
@@ -59,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'test_app.urls'
@@ -144,7 +143,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 200,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -163,3 +162,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'  # nach dashboard 
 LOGOUT_REDIRECT_URL = 'login'
+

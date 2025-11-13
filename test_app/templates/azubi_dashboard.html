@@ -1,0 +1,256 @@
+{% extends "base_azubi.html" %}
+{% load static %}
+{% block content %}
+
+
+<div class="main-dashboard py-5">
+    <div class="row mb-4" style="justify-content: center;">
+    <div class="col-12" >
+      <div class="card slide-card dashboard-welcomee-card">
+        <div class="card-body text-center">
+          <div style="display: flex; justify-content: center;">
+            <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+              <circle cx="40" cy="40" r="38" fill="#431569ff" opacity="0.1"/>
+              <circle cx="40" cy="40" r="30" fill="#fb5b3fff" opacity="0.15"/>
+              <text x="40" y="48" text-anchor="middle" font-size="32" fill="#431569ff" font-family="Roboto, sans-serif" font-weight="700">👋🏻</text>
+            </svg>
+          </div>
+          <h2 style="font-weight: 900; margin-bottom: 10px;">Willkommen, {{ user.first_name }} {{ user.last_name }}!</h2>
+          <p style="font-size: 1.1rem; color: #616161;">Schön, dass du wieder da bist</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    {# Performance-Chart (Chart.js) - unverändert #}
+    {% if results %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Leistungsübersicht</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="performanceChart" height="80"></canvas>
+        </div>
+    </div>
+
+    {# Title for results section #}
+    <div class="mb-3">
+        <h4 class="mb-0"><i class="bi bi-journal-text"></i> Ergebnisse
+            <small class="text-muted">({{ results|length }})</small>
+        </h4>
+        <p class="text-muted small mb-0">Deine letzten Testergebnisse im Überblick.</p>
+    </div>
+    {% endif %}
+
+    {# Ergebnis-Karten: nur Hauptinfo sichtbar, Details per Collapse #}
+    {% for r in results %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="mb-0">{{ r.topic }}</h5>
+                <small class="text-muted">
+                    {% if r.created_at %}{{ r.created_at|date:"d.m.Y H:i" }}
+                    {% else %}&nbsp;{% endif %}
+                </small>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <span class="badge bg-secondary me-2">{{ r.type }}</span>
+
+                {# Prozent-Badge (keine Punkte anzeigen) #}
+                <span class="me-2
+                    {% if r.percent >= 80 %}badge bg-success
+                    {% elif r.percent >= 50 %}badge bg-warning text-dark
+                    {% else %}badge bg-danger
+                    {% endif %}">
+                    {{ r.percent }}%
+                </span>
+
+                <button class="btn btn-sm btn-outline-primary" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#details-{{ forloop.counter }}"
+                        aria-expanded="false" aria-controls="details-{{ forloop.counter }}">
+                    Mehr Details
+                </button>
+            </div>
+        </div>
+
+        <div id="details-{{ forloop.counter }}" class="collapse">
+            <div class="card-body">
+                {# Detaillierte Infos (werden nur beim Ausklappen angezeigt) #}
+                <ul class="list-group mb-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-0">
+                                <i style="color:#FFD700;" class="bi bi-award-fill me-2"></i>
+                                <strong>Gesamtpunktzahl:</strong>
+                                <span class="ms-2">{{ r.total_score }}/{{ r.total_max }}</span>
+                                <span class="badge
+                                    {% if r.percent >= 80 %}bg-success
+                                    {% elif r.percent >= 50 %}bg-warning
+                                    {% else %}bg-danger
+                                    {% endif %}">{{ r.percent }}%</span>
+                            </p>
+                        </div>
+                    </li>
+                </ul>
+                {% if r.type == "MCQ" or r.type == "MCQ + Text" %}
+                <!-- MCQ-Bereich -->
+                <h6 class="mt-3 text-black"><i style="color:#37018d" class="bi bi-ui-checks-grid"></i> MCQ-Ergebnisse</h6>
+                <hr>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <div class="align-items-center mb-2">
+                            <strong>Punkte: </strong><span class="badge bg-primary">{{ r.quiz_score }}/{{ r.quiz_max }}</span>
+                        </div>
+
+                        {% if r.wrong_answers %}
+                        <div class="mt-2">
+                            <strong class="d-block mb-2">Falsche Antworten:</strong>
+                            <ul class="list-unstyled mb-0">
+                                {% for wrong in r.wrong_answers %}
+                                <li class="mb-3">
+                                    <div><strong>Frage:</strong> {{ wrong.question }}</div>
+                                    <div class="text-danger"><strong>Deine Antwort:</strong> {{ wrong.selected_option }}</div>
+                                    <div class="text-success"><strong>Richtige Antwort:</strong> {{ wrong.correct_answer }}</div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% else %}
+                        <div class="text-success mt-2">
+                            <strong style="color:#000000;">Bewertung: </strong>Alle MCQ-Fragen korrekt beantwortet <i class="bi bi-check-square-fill me-2"></i> 
+                        </div>
+                        {% endif %}
+                    </li>
+                </ul>
+                {% endif %}
+
+                {% if r.type == "Textfrage" or r.type == "MCQ + Text" %}
+                <!-- Textfragen -->
+                <h6 class="mt-3 text-black"><i style="color:#37018d" class="bi bi-card-text"></i> Textfragen & Feedback</h6>
+                <hr>
+                {% if r.text_answers %}
+                    <ul class="list-group">
+                        {% for ans in r.text_answers %}
+                        <li class="list-group-item">
+                            <strong>Frage:</strong> {{ ans.question.question_text }} <br>
+                            <strong>Deine Antwort:</strong> {{ ans.answer_text|truncatechars:200 }}<br>
+                            {% if ans.score is not None %}
+                                <strong>Punkte: </strong><span class="badge bg-primary">{{ ans.score }}/{{ ans.question.max_score }}</span>
+                            {% else %}
+                                <strong>Punkte: </strong><span class="badge bg-warning text-dark">Noch nicht bewertet</span>
+                            {% endif %}
+                            {% if ans.feedback %}
+                                <p class="mt-1"><em><i style="color:#37018d;" class="bi bi-chat-left-dots-fill"></i> Feedback:</em> {{ ans.feedback }}</p>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Keine Textantworten vorhanden.</p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-center text-muted">Keine Tests gefunden.</p>
+    {% endfor %}
+
+    <!-- Bemerkungen -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5><i class="bi bi-chat-left-text"></i> Bemerkungen</h5>
+            {% if remarks %}
+            <ul class="list-group list-group-flush">
+                {% for remark in remarks %}
+                <li class="list-group-item">
+                    {{ remark.content }}
+                    <br>
+                    <small class="text-muted">Von {{ remark.author|default:"System" }} am {{ remark.created_at|date:"d.m.Y H:i" }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">Keine Bemerkungen vorhanden.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Chart.js einbinden und Daten aus Template sammeln (unverändert) #}
+{% if results %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function() {
+    const labels = [];
+    const data = [];
+
+    {% for r in results %}
+        labels.push("{{ r.topic|escapejs }}");
+        data.push({{ r.percent|default:"0" }});
+    {% endfor %}
+
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(55, 1, 141, 0.5)');
+    gradient.addColorStop(1, 'rgba(55, 1, 141, 0.05)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Leistung (%)',
+                data: data,
+                fill: true,
+                backgroundColor: gradient,
+                borderColor: 'rgba(55, 1, 141, 1)',
+                tension: 0.25,
+                pointBackgroundColor: 'white',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: { stepSize: 20 }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+})();
+
+// Slide-in Effekt beim Scrollen
+  function handleScroll() {
+    const cards = document.querySelectorAll('.slide-card');
+    const triggerBottom = window.innerHeight * 0.85;
+
+    cards.forEach(card => {
+      const cardTop = card.getBoundingClientRect().top;
+
+      if (cardTop < triggerBottom) {
+        card.classList.add('visible');
+      }
+    });
+  }
+
+  window.addEventListener('scroll', handleScroll);
+  window.addEventListener('load', handleScroll);
+</script>
+{% endif %}
+{% endblock %}

@@ -106,6 +106,7 @@ class TextAnswer(models.Model):
     feedback = models.TextField(blank=True, null=True)  # Feedback vom Ausbilder
     created_at = models.DateTimeField(auto_now_add=True)
     
+    
 
 
     def __str__(self):
@@ -116,4 +117,26 @@ class TextAnswer(models.Model):
         return not self.is_reviewed or self.score is None
     
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    profile_image = models.ImageField(upload_to="uploads/profile_images/", blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    gradiantcolor1 =models.TextField(blank=True,null=True)
+    gradiantcolor2 =models.TextField(blank=True,null=True)
+    cover_angle = models.PositiveIntegerField(default=135)
 
+
+
+    def __str__(self):
+        return f"Profil von {self.user.username}"
+    
+
+
+class Remark(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remarks")
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Bemerkung für {self.user.username}"

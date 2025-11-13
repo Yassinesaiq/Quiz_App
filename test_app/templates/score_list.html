@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block content %}
+
+
 <div class="Rftr-container mb-4">
     <div class="card shadow-sm border-0 filter-card"> 
         <h5>
@@ -58,12 +59,12 @@
                     </div>
                     <div class="col-6 col-md-2 d-grid mb-2">
                         <a href="{% url 'score_list_view' %}" class="btn btn-sm btn-secondary-light shadow-sm">
-                            <i class="bi bi-arrow-return-left"></i> Zurücksetzen
+                            <i class="bi bi-arrow-clockwise"></i> Zurücksetzen
                         </a>
                     </div>
                     <div class="col-12 col-md-4 d-grid mb-2">
                         <a href="{% url 'download_all_results_excel' %}" class="btn btn-sm btn-outline-success shadow-sm">
-                            <i class="bi bi-file-earmark-excel"></i> Ergebnisse als Excel herunterladen
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i> Ergebnisse als Excel herunterladen
                         </a>
                     </div>
                     <div class="col-12 col-md-4 d-grid mb-2">
@@ -83,7 +84,20 @@
 <div class="results-grid">
     {% for result in results %}
     <div class="result-card">
-        <h3>{{ result.user.first_name }} {{ result.user.last_name }}</h3>
+    <div class="d-flex align-items-center mb-3">
+        {% if result.user.profile.profile_image %}
+            <img src="{{ result.user.profile.profile_image.url }}" 
+                 alt="{{ result.user.first_name }}" 
+                 class="rounded-circle me-3" 
+                 style="width:50px; height:50px; object-fit:cover;">
+        {% else %}
+            <img src="{% static 'images/default_profile2.jpg' %}" 
+                 alt="Default Avatar" 
+                 class="rounded-circle me-3" 
+                 style="width:50px; height:50px; object-fit:cover;">
+        {% endif %}
+        <h3 class="mb-0">{{ result.user.first_name }} {{ result.user.last_name }}</h3>
+    </div>
         <p><strong>Thema:</strong> {{ result.topic }}</p>
         <p><strong>Typ:</strong> 
             <span class="badge bg-secondary">{{ result.topic_type }}</span>
@@ -112,7 +126,7 @@
             <p><strong>MCQ-Score:</strong> {{ result.score }}/{{ result.maxsize }}</p>
             {% if result.wrong_answers %}
             <div style="margin-top: 15px;">
-                <h4 style="margin-bottom: 8px;">❌ Falsche Antworten:</h4>
+                <h4 style="margin-bottom: 8px;"><i style="color:red;" class="bi bi-x-circle"></i> Falsche Antworten:</h4>
                 <ul>
                     {% for wrong in result.wrong_answers %}
                     <li>
@@ -124,15 +138,15 @@
                 </ul>
             </div>
             {% else %}
-            <p style="color: green;"><strong>Alle MCQ Fragen korrekt 🎉</strong></p>
+            <p style="color: green;"><strong>Alle MCQ Fragen korrekt <i style="color:orange; font-size:20px;"class="bi bi-fire"></i></strong></p>
             {% endif %}
 
         {% elif result.topic_type == "Textfrage" %}
             <p><strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}</p>
             {% if result.pending_count > 0 %}
-                <span class="text-warning">(⏳ {{ result.pending_count }} offen)</span>
+                <span class="text-warning">(<i style="color:#d42304; font-size:18px;" class="bi bi-hourglass-split"></i> {{ result.pending_count }} offen)</span>
             {% else %}
-                <span class="text-success">Alle bewertet ✅</span>
+                <span class="text-success">Alle bewertet <i style="color:green;" class="bi bi-check-square-fill"></i></span>
             {% endif %}
 
         {% elif result.topic_type == "MCQ + Text" %}
@@ -141,7 +155,7 @@
 
             {% if result.wrong_answers %}
             <div style="margin-top: 15px;">
-                <h4 style="margin-bottom: 8px;">❌ MCQ Falsche Antworten:</h4>
+                <h4 style="margin-bottom: 8px;"><i style="color:red;" class="bi bi-x-circle"></i> MCQ Falsche Antworten:</h4>
                 <ul>
                     {% for wrong in result.wrong_answers %}
                     <li>
@@ -153,15 +167,15 @@
                 </ul>
             </div>
             {% else %}
-            <p style="color: green;"><strong>Alle MCQ Fragen korrekt 🎉</strong></p>
+            <p style="color: green;"><strong>Alle MCQ Fragen korrekt <i style="color:orange; font-size:20px;"class="bi bi-fire"></i></strong></p>
             {% endif %}
 
             <!-- Textfragen -->
             <p><strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}</p>
             {% if result.pending_count > 0 %}
-                <span class="text-warning">(⏳ {{ result.pending_count }} offen)</span>
+                <span class="text-warning">(<i style="color:#d42304; font-size:18px;" class="bi bi-hourglass-split"></i> {{ result.pending_count }} offen)</span>
             {% else %}
-                <span class="text-success">Alle bewertet ✅</span>
+                <span class="text-success">Alle bewertet <i style="color:green;" class="bi bi-check-square-fill"></i></span>
             {% endif %}
 
             <!-- Gesamt -->

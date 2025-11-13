@@ -11,6 +11,7 @@ span.title-text-gradient {
   Farbvariablen (Global)
   ========================= */
 :root {
+
   --color-text: #616161;
   --color-bg-primary: #007bff;
   --color-bg-success: #28a745;
@@ -24,7 +25,8 @@ span.title-text-gradient {
   --card3-gradient-color1: #3f2b96;
   --card3-gradient-color2: #a8c0ff;
   --card4-gradient-color1: #11998e;
-  --card4-gradient-color2: #38ef7d;    
+  --card4-gradient-color2: #38ef7d;  
+
 }
 
 /* =========================
@@ -255,6 +257,21 @@ h1.title {
   margin-bottom: 30px;
 }
 
+.main-dashboard .dashboard-welcomee-card {
+
+   background: linear-gradient(135deg,#f8f9fa, #c7b5d5ff);
+   color: #ff2a0c;
+   border-radius: 15px;
+   box-shadow: 0 4px 16px rgba(67,21,105,0.08);
+   text-align: center;
+   padding: 30px 20px;
+   margin-bottom: 30px;
+
+ }
+
+
+
+
 /* =========================
   Buttons (Global/Shared)
   ========================= */
@@ -482,6 +499,7 @@ h1.title {
    text-align :center;
    color:#610079ff;
 }
+
 .Rftr-container .btn-primary-light {
   background: transparent;
   border: 2px solid #610079ff;
@@ -522,3 +540,56 @@ h1.title {
 }
 
 
+
+    .nav-pills .nav-link {
+        color: #6c757d;
+        border-radius: 10px;
+        padding: 12px 20px;
+        margin: 4px 0;
+        transition: all 0.3s ease;
+    }
+
+    .nav-pills .nav-link:hover {
+        background-color: #ffffff;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #fff;
+        color: #4158D0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Profile header / cover */
+    .profile-header {
+        background: linear-gradient(135deg, #4158D0 0%, #fcfcfcff 100%);
+        height: 150px;
+        border-radius: 15px;
+        position: relative;
+    }
+
+    /* control container on the cover */
+    .cover-controls {
+        z-index: 5;
+    }
+
+    /* cover editor card */
+    .cover-editor {
+        width: 260px;
+        display: none;
+        margin-top: 8px;
+    }
+
+    /* profile picture common styling */
+    .profile-pic {
+        width: 120px;
+        height: 120px;
+        border: 4px solid #fff;
+        margin-top: -60px;
+        background-color: #fff;
+        object-fit: cover;
+    }
+
+    /* small layout tweaks */
+    .profile-sidebar {
+        /* keep placeholder if you want custom sidebar rules later */
+    }

@@ -22,7 +22,7 @@
     </style>
 </head>
 <body style="
-  background-image: url('{% static 'images/test3.jpg' %}'); 
+  background-image: url('{% static 'images/test7.jpg' %}'); 
   background-position: center center;
   background-repeat: repeat;
   background-size: cover;
@@ -34,7 +34,7 @@
   
 
 <!--  NAVIGATION -->
-<nav class="navbar navbar-expand-lg navbar-light shadow-sm" style="background:linear-gradient(135deg, #ddd6f3ff, #610079ff);">
+<nav class="navbar navbar-expand-lg navbar-light shadow-sm" style="background:linear-gradient(135deg, #fac7c0, #ff2a0c);">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="{% url 'topics_list' %}">
             <img src="{% static 'images/logo.png' %}" alt="Logo" width="120" height="50" class="me-2">
@@ -53,10 +53,8 @@
                             <i class="bi bi-person-check"></i> Verbundener Benutzer: <strong>{{ user.first_name }} {{ user.last_name }}</strong>
                         </span>
                     </li>
-                    <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'topics_list' %}"><i class="bi bi-stack"></i> Themen</a></li>
-                    <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'score_list_view' %}"><i class="bi bi-journal-text"></i> Ergebnisse</a></li>
-                    <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'user_profile'  %}"><i class="bi bi-person-circle"></i> Benutzer Profil</a></li>
+                      <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'user_profile'  %}"><i class="bi bi-person-circle"></i> Benutzer Profil </a></li>
+                    <li class="nav-item"><a class="nav-link" style="color: white;" href="{% url 'azubi_dashboard' %}"><i class="bi bi-receipt"></i> Meine Ergebnisse</a></li>
                     <li class="nav-item">
                         <form method="post" action="{% url 'logout' %}" class="d-inline">
                             {% csrf_token %}
