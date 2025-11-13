@@ -7,9 +7,9 @@ from .models import *
 from django.shortcuts import *
 from .forms import *
 from django.db import transaction
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required ,user_passes_test
 import logging
-from django.contrib.auth import logout , authenticate
+from django.contrib.auth import logout , authenticate , login
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -31,8 +31,10 @@ from .serializers import TextQuestionSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from django.urls import reverse
+from django.forms import modelform_factory, inlineformset_factory
 
-
+def is_admin_or_staff(user):
+    return user.is_superuser or user.is_staff
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -81,112 +83,182 @@ class TextQuestionViewset(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     permission_classes = [IsAuthenticated]
    
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def topics_list(request):
-    topics = Topics.objects.all()
-    return render(request, 'topics_list.html', {'topics': topics})
+    topic_type = request.GET.get('topic_type')
+    if topic_type:
+        topics = Topics.objects.filter(topic_type__name=topic_type)
+    else:
+        topics = Topics.objects.all()
+    return render(request, 'topics_list.html', {'topics': topics, 'topic_type': topic_type})
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def topic_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     questions = Questions.objects.filter(topic_id=topic)
-    return render(request, 'topic_questions.html', {'topic': topic, 'questions': questions})
-
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+    if topic_type == "Textfrage":
+        return redirect("view_text_questions_of_topic", topic_id=topic.pk)
+    elif topic_type == "MCQ + Text":
+        # Replace 'mcq_text_question_view' with your actual view name for MCQ + Text
+        return redirect("view_mcq_text_questions", topic_id=topic.pk)
+    return render(request, 'topic_questions.html', {
+        'topic': topic,
+        'questions': questions,
+        'topic_type': topic_type
+    })
 
 # ---------------- Topics ---------------- #
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def add_topic(request):
+    #  topic_type VORHER initialisieren, damit es immer existiert
+    topic_type = None
+    type_id = request.GET.get("type_id")
+    if type_id:
+        try:
+            topic_type = TopicType.objects.get(id=type_id)
+        except TopicType.DoesNotExist:
+            topic_type = None
+
     if request.method == "POST":
         form = TopicForm(request.POST, request.FILES)
         if form.is_valid():
             topic = form.save(commit=False)
             topic.created_by = request.user
-            topic.created_at = timezone.now()+ timedelta(hours=2)
+            topic.created_at = timezone.now() + timedelta(hours=2)
+            if topic_type:
+                topic.topic_type = topic_type  #Type speichern
             topic.save()
             form.save()
             return redirect('topics_list')
     else:
         form = TopicForm()
-    return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema hinzufügen'})
 
+    return render(
+        request,
+        'add_edit_topic.html',
+        {
+            'form': form,
+            'title': 'Thema hinzufügen',
+            'topic_type': topic_type,  # immer gesetzt (None wenn nicht gefunden)
+        }
+    )
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
+    topic_type = topic.topic_type  #  Typ des Themas beibehalten
+
     if request.method == "POST":
         form = TopicForm(request.POST, request.FILES, instance=topic)
         if form.is_valid():
             topic = form.save(commit=False)
             topic.created_by = request.user
-            topic.created_at = timezone.now()+ timedelta(hours=2)
+            topic.created_at = timezone.now() + timedelta(hours=2)
+            topic.topic_type = topic_type  #  Sicherstellen, dass Typ nicht verloren geht
             topic.save()
-            form.save()
             return redirect('topics_list')
     else:
         form = TopicForm(instance=topic)
-    return render(request, 'add_edit_topic.html', {'form': form, 'title': 'Thema bearbeiten'})
 
+    return render(
+        request,
+        'add_edit_topic.html',
+        {
+            'form': form,
+            'title': 'Thema bearbeiten',
+            'topic_type': topic_type  #  Im Template verfügbar
+        }
+    )
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     with transaction.atomic():
-        # alle fragen löschen 
+        #  Alle MCQ-Fragen löschen
         Questions.objects.filter(topic_id=topic).delete()
-        # dann Thema löschen
+
+        #  Alle Textfragen löschen (falls vorhanden)
+        TextQuestion.objects.filter(topic=topic).delete()
+
+        #  Danach das Thema selbst löschen
         topic.delete()
+
     return redirect('topics_list')
 
 
 # ---------------- Questions ---------------- #
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def add_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+    if topic_type == "Textfrage":
+        return redirect("add_text_questions_to_topic", topic_id=topic.pk)
+    if topic_type == "MCQ + Text":
+        return redirect("add_mcq_text_question_view", topic_id=topic.pk)
 
-    if request.method == 'POST':
+    #  Standard: MCQ-Formular
+    if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, current_topic=topic)
         if form.is_valid():
             question = form.save(commit=False)
             question.topic_id = topic
             question.save()
 
-            if 'save_continue' in request.POST:
-                return redirect('add_question', topic_id=topic.pk)  # neue Frage zum gleichen Thema
+            if "save_continue" in request.POST:
+                return redirect("add_question", topic_id=topic.pk)  # weitere MCQ-Frage
             else:
-                return redirect('topic_questions', topic_id=topic.pk)  # zurück zur Übersicht
+                return redirect("topic_questions", topic_id=topic.pk)  # zurück zur Übersicht
     else:
         form = QuestionForm(current_topic=topic)
 
-    return render(request, 'add_edit_question.html', {
-        'form': form,
-        'title': f'Frage hinzufügen zu: {topic.topic}',
-        'topic': topic
-    })
+    return render(
+        request,
+        "add_edit_question.html",
+        {
+            "form": form,
+            "title": f"MCQ-Frage hinzufügen zu: {topic.topic}",
+            "topic": topic,
+            "topic_type": topic_type,
+        },
+    )
 
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def edit_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
 
     if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, instance=question)
+        # Ensure topic_id is not changed
+        form.fields["topic_id"].disabled = True
         if form.is_valid():
-            form.save()
+            # Do not update topic_id even if POST data contains it
+            edited_question = form.save(commit=False)
+            edited_question.topic_id = question.topic_id
+            edited_question.save()
             return redirect('topic_questions', topic_id=question.topic_id.pk)
     else:
         form = QuestionForm(instance=question)
+        # Disable topic_id field in the form
+        if "topic_id" in form.fields:
+            form.fields["topic_id"].disabled = True
         logger = logging.getLogger(__name__)
         logger.info(question.des_img)
-
     return render(request, 'add_edit_question.html', {
         'form': form,
         'title': 'Frage bearbeiten',
         'topic': question.topic_id
     })
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def delete_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
@@ -194,7 +266,7 @@ def delete_question(request, question_id):
     question.delete()
     return redirect('topic_questions', topic_id=topic_id)
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def dashboard(request):
     topics_count = Topics.objects.count()
@@ -215,7 +287,7 @@ def logout_view(request):
     return redirect('login')  # or use 'home' or a custom page
 
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def toggle_topic_visibility(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
@@ -224,16 +296,38 @@ def toggle_topic_visibility(request, topic_id):
     return redirect('topics_list')
 
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
+from django.contrib.auth import authenticate, login
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
 
-        if user:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key})
-        return Response({"error": "Invalid credentials"}, status=400)
+def login_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        print(f"DEBUG → username: {username}, password: {password}")  # optional debug
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            groups = [g.name.lower() for g in user.groups.all()]
+            print("DEBUG → groups:", groups)
+
+            # ✅ redirect by role
+            if "azubis" in groups:
+                return redirect('azubi_dashboard')
+            elif user.is_superuser or user.is_staff:
+                return redirect('dashboard')
+            else:
+                return redirect('user_profile')
+        else:
+            messages.error(request, "Ungültiger Benutzername oder Passwort.")
+            print("DEBUG → Authentication failed")
+            return render(request, 'login.html', {'form': {}})
+
+    return render(request, 'login.html', {'form': {}})
+
     
         
 @api_view(['GET'])
@@ -244,6 +338,7 @@ def get_current_user(request):
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name
+        
     }]
     return Response(data, status=status.HTTP_200_OK)
 
@@ -261,66 +356,89 @@ class SubmitResultView(APIView):
         return Response(serializer.errors, status=400)
 
 from django.db.models import Q
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def score_list_view(request):
-    results = QuizResult.objects.select_related("user", "session").prefetch_related("wrong_answers").order_by("-created_at")
+    # --- Basis-Query ---
+    sessions = (
+        TestSession.objects
+        .select_related("user", "user__profile", "topic__topic_type")  # ✅ Profil des Users mitladen
+        .prefetch_related("quiz_results__wrong_answers", "text_answers__question")
+        .order_by("-started_at")
+    )
 
-    for result in results:
-        # Lokale Zeit und Löschdatum
-        result.created_at = localtime(result.created_at + timedelta(hours=2))
-        result.deletion_date = localtime(result.created_at + timedelta(days=60))
+    # --- Filter ---
+    topic_filter = request.GET.get("topic")
+    type_filter = request.GET.get("topic_type")
+    first_name_filter = request.GET.get("first_name")
+    last_name_filter = request.GET.get("last_name")
 
-        # Textantworten der Session laden
-        session_id = result.session.id if result.session else None
-        if session_id:
-            text_answers = TextAnswer.objects.filter(session_id=session_id).select_related("question")
-        else:
-            text_answers = TextAnswer.objects.none()
+    if topic_filter:
+        sessions = sessions.filter(topic__topic__icontains=topic_filter)
+    if type_filter:
+        sessions = sessions.filter(topic__topic_type__name__icontains=type_filter)
+    if first_name_filter:
+        sessions = sessions.filter(user__first_name__icontains=first_name_filter)
+    if last_name_filter:
+        sessions = sessions.filter(user__last_name__icontains=last_name_filter)
 
-        # Berechnung der Textantwort-Scores & MaxScores
-        total_text_score = 0
-        total_text_max_score = 0
-        for ans in text_answers:
-            if ans.score is not None:
-                total_text_score += ans.score
-            total_text_max_score += ans.question.max_score  # 🔑 Holt max_score von jeder Frage
+    # --- Vorschläge für Datalists ---
+    topic_suggestions = Topics.objects.values_list("topic", flat=True).distinct()
+    type_suggestions = TopicType.objects.values_list("name", flat=True).distinct()
+    first_name_suggestions = User.objects.exclude(first_name="").values_list("first_name", flat=True).distinct()
+    last_name_suggestions = User.objects.exclude(last_name="").values_list("last_name", flat=True).distinct()
 
-        # Werte in result-Objekt anhängen (damit Template zugreifen kann)
-        result.text_answers = text_answers
-        result.pending_count = text_answers.filter(score__isnull=True).count()
-        result.total_text_score = total_text_score
+    # --- Ergebnisse aufbereiten ---
+    results = []
+    for session in sessions:
+        quiz_result = session.quiz_results.first()
+        text_answers = session.text_answers.all()
 
-        #  Gesamtberechnung:
-        quiz_score = result.score or 0
-        quiz_max = result.maxsize or 0
+        # MCQ-Teil
+        quiz_score = quiz_result.score if quiz_result else 0
+        quiz_max = quiz_result.maxsize if quiz_result else 0
 
+        # Text-Teil
+        total_text_score = sum(a.score for a in text_answers if a.score is not None)
+        total_text_max_score = sum(a.question.max_score for a in text_answers)
+
+        # Gesamt
         total_score = quiz_score + total_text_score
         total_max = quiz_max + total_text_max_score
 
-        # Werte anfügen
-        result.total_score = total_score
-        result.total_max_score = total_max
-        result.session_id = session_id
+        results.append({
+            "session_id": session.id,
+            "user": session.user,
+            "user_profile": getattr(session.user, "profile", None),  # ✅ sicherstellen, dass ein Profil existiert
+            "topic": session.topic.topic,
+            "topic_type": session.topic.topic_type.name if session.topic.topic_type else "Unbekannt",
+            "quiz_result": quiz_result,
+            "wrong_answers": quiz_result.wrong_answers.all() if quiz_result else [],
+            "text_answers": text_answers,
+            "pending_count": text_answers.filter(score__isnull=True).count(),
+            "total_text_score": total_text_score,
+            "total_text_max_score": total_text_max_score,
+            "score": quiz_score,
+            "maxsize": quiz_max,
+            "total_score": total_score,
+            "total_max_score": total_max,
+            "created_at": localtime(session.started_at + timedelta(hours=2)),
+            "deletion_date": localtime(session.started_at + timedelta(days=60)),
+        })
 
-    return render(request, "score_list.html", {"results": results})
-
-
-
+    # --- Template Rendern ---
+    return render(request, "score_list.html", {
+        "results": results,
+        "topic_suggestions": topic_suggestions,
+        "type_suggestions": type_suggestions,
+        "first_name_suggestions": first_name_suggestions,
+        "last_name_suggestions": last_name_suggestions,
+    })
 
 
 #Excel Datei Herunterladen 
 #https://openpyxl.readthedocs.io/en/stable/
-from openpyxl.styles import Font, PatternFill
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from openpyxl import Workbook
-from openpyxl.styles import Font
-from django.contrib.auth.decorators import login_required
-
-from .models import QuizResult
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 def download_result_excel(request, id):
     if not request.user.is_staff:
@@ -371,7 +489,6 @@ def download_result_excel(request, id):
             last_row = sheet.max_row
             for col in range(1, 4):
                 sheet.cell(row=last_row, column=col).font = bold_font
-
             for ans in text_answers:
                 sheet.append([
                     ans.question.question_text,
@@ -387,69 +504,105 @@ def download_result_excel(request, id):
     workbook.save(response)
     return response
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def download_all_results_excel(request):
-
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Alle Ergebnisse"
 
-    # Farben und Formatierungen
+    # Formatierungen
     bold_font = Font(bold=True)
-    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # Hellgrün
-    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")    # Hellrot
-    blue_fill = PatternFill(start_color="90D5FF", end_color="90D5FF", fill_type="solid")    # Hellrot
+    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+    blue_fill = PatternFill(start_color="90D5FF", end_color="90D5FF", fill_type="solid")
 
-    # Kopfzeile
+    # Kopfzeilen
     headers = [
-        "Benutzer", "Vorname", "Nachname", 
-        "Thema", "Score", "Datum", 
-        "Frage", "Richtige Antwort", "Falsch Gewählt"
+        "Benutzer", "Vorname", "Nachname",
+        "Thema", "Thema-Typ", "Score", "Datum",
+        "Fragetyp", "Frage", "Gegebene Antwort", "Richtige Antwort / Max Score", "Punkte / Feedback"
     ]
     sheet.append(headers)
-
     for col in range(1, len(headers) + 1):
-        cell = sheet.cell(row=1, column=col)
-        cell.font = bold_font
+        sheet.cell(row=1, column=col).font = bold_font
 
-    # Datenzeilen schreiben
-    for result in QuizResult.objects.all().prefetch_related("wrong_answers", "user"):
+    # Ergebnisse
+    results = QuizResult.objects.select_related("user", "session").prefetch_related("wrong_answers")
+
+    for result in results:
+        user = result.user
+        topic_name = result.topic  # vermutlich CharField
+        topic_obj = Topics.objects.filter(topic=topic_name).select_related("topic_type").first()
+        topic_type = topic_obj.topic_type.name if topic_obj and topic_obj.topic_type else "Unbekannt"
+
+        # 1. MCQ-Ergebnisse
         wrongs = result.wrong_answers.all()
-        if wrongs:
+        if wrongs.exists():
             for wrong in wrongs:
                 sheet.append([
-                    result.user.username,
-                    result.user.first_name,
-                    result.user.last_name,
-                    str(result.topic),
+                    user.username,
+                    user.first_name,
+                    user.last_name,
+                    topic_name,
+                    topic_type,
                     result.score,
                     result.created_at.strftime("%d.%m.%Y %H:%M"),
+                    "MCQ",
                     wrong.question,
+                    wrong.selected_option,
                     wrong.correct_answer,
-                    wrong.selected_option
+                    "Falsch beantwortet"
                 ])
         else:
             sheet.append([
-                result.user.username,
-                result.user.first_name,
-                result.user.last_name,
-                str(result.topic),
+                user.username,
+                user.first_name,
+                user.last_name,
+                topic_name,
+                topic_type,
                 result.score,
                 result.created_at.strftime("%d.%m.%Y %H:%M"),
-                "100%", "Richtig", "Beantwortet"
+                "MCQ",
+                "-",
+                "-",
+                "Alle korrekt",
+                "✔️"
             ])
 
+        # 2. Textfragen dieser Session
+        if result.session:
+            text_answers = TextAnswer.objects.filter(session=result.session).select_related("question")
+            for ans in text_answers:
+                sheet.append([
+                    user.username,
+                    user.first_name,
+                    user.last_name,
+                    topic_name,
+                    topic_type,
+                    result.score,
+                    result.created_at.strftime("%d.%m.%Y %H:%M"),
+                    "Textfrage",
+                    ans.question.question_text if ans.question else "Unbekannt",
+                    ans.answer_text,
+                    f"Max: {ans.question.max_score if ans.question else '-'}",
+                    f"{ans.score if ans.score is not None else '-'} | {ans.feedback or ''}"
+                ])
 
-    richt_col = 8  
-    falsch_col = 9 
-    score_col = 5
+    # Farben setzen
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row):
-        row[richt_col - 1].fill = green_fill
-        row[falsch_col - 1].fill = red_fill
-        row[score_col - 1].fill = blue_fill
+        score_cell = row[5]  # Score-Spalte
+        score_cell.fill = blue_fill
 
-    # Download vorbereiten
+        qtype = row[7].value
+        if qtype == "MCQ":
+            gegeben_cell = row[9]
+            richtig_cell = row[10]
+            if row[11].value == "Falsch beantwortet":
+                gegeben_cell.fill = red_fill
+                richtig_cell.fill = green_fill
+
+    # Datei zurückgeben
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -459,37 +612,44 @@ def download_all_results_excel(request):
 
 
 
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
-@transaction.atomic  # alles oder nichts – sichert Datenkonsistenz
+@transaction.atomic
 def delete_result(request, id):
-    result = get_object_or_404(QuizResult.objects.select_related("session"), id=id)
-    session = result.session  # die zugehörige TestSession
+    session = get_object_or_404(TestSession.objects.select_related("topic__topic_type"), id=id)
+    topic_type = session.topic.topic_type.name if session.topic and session.topic.topic_type else "MCQ"
 
-    #  WrongAnswers löschen (gehören direkt zu QuizResult)
-    result.wrong_answers.all().delete()
+    # Fall 1: Nur MCQ
+    if topic_type == "MCQ":
+        session.quiz_results.all().delete()
 
-    #  TextAnswers der gleichen Session löschen (wenn Session existiert)
-    if session:
+    # Fall 2: Nur Text
+    elif topic_type == "Textfrage":
         session.text_answers.all().delete()
-        session.delete()  # Session selbst löschen
 
-    # QuizResult löschen
-    result.delete()
+    # Fall 3: Mixed (MCQ + Text)
+    elif topic_type == "MCQ + Text":
+        session.quiz_results.all().delete()
+        session.text_answers.all().delete()
+
+    # Session selbst löschen
+    session.delete()
 
     return redirect("score_list_view")
 
 
+
 from django.db import transaction
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @login_required
 @transaction.atomic
 def delete_all_result(request):
     #  Alle Sessions zuerst löschen (löscht automatisch TextAnswers, wenn on_delete=CASCADE)
-    from .models import TestSession, QuizResult  # Import hier, um Zirkularimporte zu vermeiden
     TestSession.objects.all().delete()
     # alle QuizResults löschen (löscht WrongAnswers per on_delete=CASCADE)
     QuizResult.objects.all().delete()
-
     return redirect("score_list_view")
 
 
@@ -505,7 +665,7 @@ def text_answers_list(request):
         "session_id": session_id
     })
 
-
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def review_text_answer(request, answer_id):
     answer = get_object_or_404(TextAnswer, pk=answer_id)
@@ -530,24 +690,19 @@ def review_text_answer(request, answer_id):
     return render(request, "review_text_answer.html", {"answer": answer})
 
 
-
 class TextQuestionByTopicNameView(generics.ListAPIView):
     serializer_class = TextQuestionSerializer
+    pagination_class = None   #  Wichtig: keine Pagination
 
     def get_queryset(self):
-        topic_name = self.request.query_params.get('topic')
+        topic_name = self.request.query_params.get("topic")
         if topic_name:
-            return TextQuestion.objects.filter(topic__topic=topic_name)
+            return TextQuestion.objects.filter(topic__topic__iexact=topic_name)
         return TextQuestion.objects.none()
 
 
 
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from .models import TextQuestion, TextAnswer, TestSession, Topics
+    
 
 class SubmitTextAnswerAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -555,8 +710,8 @@ class SubmitTextAnswerAPI(APIView):
     def post(self, request):
         question_id = request.data.get("question")
         answer_text = request.data.get("answer_text")
-        session_id = request.data.get("session")  # 🔑 New: session ID from Android
-        topic_name = request.data.get("topic")       # optional fallback to auto-create session
+        session_id = request.data.get("session")  # New: session ID from Android
+        topic_name = request.data.get("topic")    # optional fallback to auto-create session
 
         if not question_id or not answer_text:
             return Response({"error": "question and answer_text are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -566,7 +721,7 @@ class SubmitTextAnswerAPI(APIView):
         except TextQuestion.DoesNotExist:
             return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # 🔑 Ensure session exists (create one if none provided)
+        #  Ensure session exists (create one if none provided)
         session = None
         if session_id:
             session = TestSession.objects.filter(id=session_id, user=request.user).first()
@@ -586,11 +741,11 @@ class SubmitTextAnswerAPI(APIView):
             user=request.user,
             question=question,
             answer_text=answer_text,
-            session=session  # ✅ Link to session
+            session=session  #  Link to session
         )
 
         return Response(
-            {"success": "Answer saved", "session_id": session.id},  # 🔑 Send back session ID
+            {"success": "Answer saved", "session_id": session.id},  #  Send back session ID
             status=status.HTTP_201_CREATED
         )
 
@@ -603,9 +758,17 @@ def start_test_session(request):
     topic = Topics.objects.filter(topic=topic_name).first()
     if not topic:
         return Response({"error": "Topic not found"}, status=404)
+    
+    """  prüfen ob der User schon eine Session für dieses Topic hat
+    existing_session = TestSession.objects.filter(user=request.user, topic=topic).first()
+    if existing_session:
+        return Response({
+            "error": "Du hast diesen Test bereits gemacht."
+        }, status=403) """
 
     session = TestSession.objects.create(user=request.user, topic=topic)
-    return Response({"session_id": session.id})
+    return Response({ "message": "Session gestartet",
+                      "session_id": session.id})
 
 
 @login_required
@@ -620,18 +783,327 @@ def delete_session(request, session_id):
     return redirect('score_list_view')
 
 
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
 @staff_member_required
 def choose_topic_type(request):
-    """Zeigt Auswahl zwischen MCQ, Text oder kombiniertem Test."""
     if request.method == "POST":
         choice = request.POST.get("choice")
-        if choice:
-            # Weiterleitung zu deiner normalen Topic-Create-View
-            return redirect(f"{reverse('create_topic')}?type={choice}")
+        try:
+            topic_type = TopicType.objects.get(name__iexact=choice)  # Hole den Typ aus DB
+        except TopicType.DoesNotExist:
+            topic_type = None
+
+        if topic_type:
+            # Weiterleiten mit Typ-ID
+            return redirect(f"{reverse('add_topic')}?type_id={topic_type.id}")
+
     return render(request, "choose_topic_type.html")
+    
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@staff_member_required
+def add_text_question(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+    topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
+
+    # Only allow adding text questions for correct topic types
+    if topic_type not in ["Textfrage", "MCQ + Text"]:
+        messages.error(request, "Für diesen Thema-Typ können keine Textfragen hinzugefügt werden.")
+        return redirect("topics_list")
+
+    if request.method == "POST":
+        form = TextQuestionForm(request.POST, request.FILES)
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.topic = topic
+            question.save()
+
+            if "save_continue" in request.POST:
+             return redirect("add_text_question", topic_id=topic.topic_id)
+            else:
+                messages.success(request, "Frage gespeichert.")
+                if topic_type == "MCQ + Text":
+                    return redirect("view_mcq_text_questions", topic_id=topic.topic_id)
+                else:
+                 return redirect("view_text_questions_of_topic", topic_id=topic.topic_id)
+        else:
+            messages.error(request, "Bitte korrigiere die Fehler im Formular.")
+    else:
+        form = TextQuestionForm()
+
+    return render(request, "add_text_question.html", {
+        "form": form,
+        "topic": topic,
+        "topic_type": topic_type,
+    })
 
 
-def create_topic(request):
-    topic_type = request.GET.get("type", "mcq")  # default = mcq
-    # topic_type kannst du ins Template geben, um z. B. spezielle Felder anzuzeigen
-    return render(request, "create_topic.html", {"topic_type": topic_type})
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+def view_text_questions_of_topic(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+    text_questions = TextQuestion.objects.filter(topic=topic)
+    return render(request, "view_text_questions.html", {
+        "topic": topic,
+        "text_questions": text_questions
+    })
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+def edit_text_question(request, question_id):
+    question = get_object_or_404(TextQuestion, pk=question_id)
+    topic_type = question.topic.topic_type
+    if request.method == "POST":
+        form = TextQuestionForm(request.POST, request.FILES, instance=question)
+        if form.is_valid() and topic_type == "Textfrage":
+            form.save()
+            messages.success(request, "Textfrage wurde bearbeitet.")
+            return redirect("view_text_questions_of_topic", topic_id=question.topic.pk)
+        elif form.is_valid() and topic_type == "MCQ + Text":
+             messages.success(request, "Textfrage wurde bearbeitet.")
+             return redirect("view_mcq_text_questions", topic_id=question.topic.pk)
+        else :
+            messages.error(request, "Bitte korrigiere die Fehler.")
+    else:
+        form = TextQuestionForm(instance=question)
+    return render(request, "edit_text_question.html", {
+        "form": form,
+        "question": question,
+        "topic": question.topic
+    })
+
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+def delete_text_question(request, question_id):
+    question = get_object_or_404(TextQuestion, pk=question_id)
+    tp_type = question.topic.topic_type.name
+    topic_id = question.topic.pk
+    question.delete()
+    messages.success(request, "Textfrage wurde gelöscht.")
+    if tp_type == "MCQ + Text":
+        return redirect("view_mcq_text_questions", topic_id=topic_id)
+    else:
+        return redirect("view_text_questions_of_topic", topic_id=topic_id)
+
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+def add_mcq_text_question_view(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+
+    # Default: Erster Schritt = Textfrage
+    step = request.GET.get("step", "text")
+    text_question = None  
+
+    # Schritt 1: Textfrage speichern
+    if request.method == "POST" and "text_submit" in request.POST:
+     text_form = TextQuestionForm(request.POST)
+     if "topic" in text_form.fields:
+        text_form.fields.pop("topic")
+
+     if text_form.is_valid():
+        text_question = text_form.save(commit=False)
+        text_question.topic = topic
+        text_question.save()
+        messages.success(request, "Textfrage gespeichert. Du kannst weitere hinzufügen oder zu MCQ-Fragen wechseln.")
+
+        # statt sofort zu mcq -> wieder Text-Form zeigen, aber mit text_question für den Button
+        text_form = TextQuestionForm()  
+        return render(request, "add_mcq_text_question.html", {
+            "topic": topic,
+            "step": "text",
+            "text_form": text_form,
+            "mcq_form": None,
+            "text_question": text_question,  #  für den Button
+        })
+        # Initial laden: Schritt 1 oder Schritt 2
+    if step == "mcq":
+            text_question_id = request.GET.get("text_id")
+            if not text_question_id:
+                messages.error(request, "Keine Textfrage angegeben. Bitte zuerst eine Textfrage anlegen.")
+                return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=text")
+            try:
+                text_question = TextQuestion.objects.get(pk=text_question_id, topic=topic)
+            except TextQuestion.DoesNotExist:
+                messages.error(request, "Textfrage nicht gefunden. Bitte erneut anlegen.")
+                return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=text")
+            if request.method == "POST" and "mcq_submit" in request.POST:
+                mcq_form = QuestionForm(request.POST, request.FILES, current_topic=topic)
+                if mcq_form.is_valid():
+                    question = mcq_form.save(commit=False)
+                    question.topic_id = topic
+                    question.save()
+                    messages.success(request, "MCQ-Frage gespeichert.")
+                    # Nach dem Speichern: Entweder weitere MCQ-Frage oder zurück zur Übersicht
+                    if "save_continue" in request.POST:
+                        return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=mcq&text_id={text_question_id}")
+                    else:
+                        return redirect("view_mcq_text_questions", topic_id=topic.topic_id)
+                else:
+                    messages.error(request, "Bitte korrigiere die Fehler im MCQ-Formular.")
+            else:
+                mcq_form = QuestionForm(current_topic=topic)
+            return render(request, "add_mcq_text_question.html", {
+                "topic": topic,
+                "step": "mcq",
+                "text_form": None,
+                "mcq_form": mcq_form,
+                "text_question": text_question
+            })
+
+
+    # Default: Schritt 1 (Textfrage anzeigen)
+    text_form = TextQuestionForm()
+    return render(request, "add_mcq_text_question.html", {
+        "topic": topic,
+        "step": "text",
+        "text_form": text_form,
+        "mcq_form": None,
+    })
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required
+def view_mcq_text_questions(request, topic_id):
+    topic = get_object_or_404(Topics, pk=topic_id)
+
+    # Textfragen dieses Themas laden
+    text_questions = TextQuestion.objects.filter(topic=topic).prefetch_related("answers")
+
+    # MCQ-Fragen dieses Themas laden
+    mcq_questions = Questions.objects.filter(topic_id=topic)
+
+    return render(
+        request,
+        "view_mcq_text_questions.html",
+        {
+            "topic": topic,
+            "text_questions": text_questions,
+            "mcq_questions": mcq_questions,
+        },
+    )
+
+@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required
+def view_add_mcq_questions(request, topic_id):
+        topic = get_object_or_404(Topics, pk=topic_id)
+
+        if request.method == "POST":
+            form = QuestionForm(request.POST, request.FILES)
+            # topic_id darf nicht geändert werden, daher Feld deaktivieren
+            if "topic_id" in form.fields:
+                form.fields["topic_id"].disabled = True
+            if form.is_valid():
+                question = form.save(commit=False)
+                question.topic_id = topic  # Thema bleibt unverändert
+                question.save()
+                if "save_continue" in request.POST:
+                    return redirect("view_add_mcq_questions", topic_id=topic.pk)
+                else:
+                    return redirect("topic_questions", topic_id=topic.pk)
+        else:
+            form = QuestionForm()
+            if "topic_id" in form.fields:
+                form.fields["topic_id"].disabled = True
+
+        return render(request, "add_edit_question.html", {
+            "form": form,
+            "title": f"Neue MCQ-Frage für: {topic.topic}",
+            "topic": topic
+        })
+
+
+# views.py
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import UserForm, UserProfileForm
+
+
+@login_required
+def user_profile_view(request):
+    user = request.user
+    profile, created = UserProfile.objects.get_or_create(user=user)
+
+    # determine template by role
+    is_azubi = user.groups.filter(name__iexact="azubis").exists()
+    template_name = "user_profile_azubi.html" if is_azubi else "user_profile.html"
+
+    if request.method == "POST":
+        user_form = UserForm(request.POST, instance=user)
+        profile_form = UserProfileForm(request.POST, request.FILES, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile = profile_form.save(commit=False)
+            # Farben extra speichern, falls sie aus JS-Hidden-Feldern kommen
+            profile.gradiantcolor1 = request.POST.get('gradiantcolor1', profile.gradiantcolor1)
+            profile.gradiantcolor2 = request.POST.get('gradiantcolor2', profile.gradiantcolor2)
+            profile.cover_angle = request.POST.get('cover_angle', profile.cover_angle)
+            profile.save()
+
+            messages.success(request, "Profil erfolgreich aktualisiert!")
+            # Kein redirect – stattdessen Template neu rendern mit aktuellen Daten
+        else:
+            messages.error(request, "Bitte überprüfe deine Eingaben.")
+    else:
+        user_form = UserForm(instance=user)
+        profile_form = UserProfileForm(instance=profile)
+
+    # Profil nach Speichern neu laden (wichtig)
+    profile.refresh_from_db()
+
+    return render(request, template_name, {
+        "user_form": user_form,
+        "profile_form": profile_form,
+        "user_profile": profile,
+    })
+
+@user_passes_test(lambda u: u.groups.filter(name__iexact='azubis').exists(), login_url='/')
+@login_required
+def user_dashboard(request):
+    user = request.user
+
+    sessions = (
+        TestSession.objects.filter(user=user)
+        .select_related("topic__topic_type")
+        .prefetch_related("quiz_results__wrong_answers", "text_answers__question")
+        .order_by("-started_at")
+    )
+
+    results = []
+
+    for s in sessions:
+        quiz = s.quiz_results.first()
+        text_answers = s.text_answers.all()
+
+        quiz_score = quiz.score if quiz else 0
+        quiz_max = quiz.maxsize if quiz else 0
+
+        text_score = sum(a.score for a in text_answers if a.score is not None)
+        text_max = sum(a.question.max_score for a in text_answers)
+
+        total_score = quiz_score + text_score
+        total_max = quiz_max + text_max
+        percent = int((total_score / total_max) * 100) if total_max > 0 else 0
+
+        
+
+        
+
+        results.append({
+            "topic": s.topic.topic,
+            "type": s.topic.topic_type.name if s.topic.topic_type else "Unbekannt",
+            "quiz_score": quiz_score,
+            "quiz_max": quiz_max,
+            "wrong_answers": quiz.wrong_answers.all() if quiz else [],
+            "text_answers": text_answers,
+            "total_score": total_score,
+            "total_max": total_max,
+            "percent": percent,
+            "created_at": localtime(s.started_at + timedelta(hours=2)), # wann (Datum/Uhrzeit) anzeigen
+        })
+
+    remarks = Remark.objects.filter(user=user).order_by("-created_at")
+
+    return render(request, "azubi_dashboard.html", {
+        "results": results,
+        "remarks": remarks
+    })

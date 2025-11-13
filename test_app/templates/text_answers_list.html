@@ -1,44 +1,75 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Offene Fragen – Korrektur</h2>
+<h2 class="mb-4">Offene Fragen – Korrektur</h2>
 
-<table class="table table-striped table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Benutzer</th>
-            <th>Frage</th>
-            <th>Antwort</th>
-            <th>Status</th>
-            <th>Punkte</th>
-            <th>Aktionen</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ans in answers %}
-        <tr>
-            <td>{{ ans.user.username }}</td>
-            <td>{{ ans.question.question_text }}</td>
-            <td>{{ ans.answer_text }}</td>
-            <td>
-                {% if ans.is_reviewed %}
-                    ✅ Bewertet
-                {% else %}
-                    ⏳ Offen
-                {% endif %}
-            </td>
-            <td>{{ ans.score|default:"-" }}</td>
-            <td>
-                <a href="{% url 'review_text_answer' ans.id %}?session={{ request.GET.session }}" 
-                class="btn btn-sm btn-primary">
-                    Bewerten
-                </a>
-
-
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="text-center">Keine Antworten vorhanden.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-secondary ">
+                <tr>
+                    <th>Benutzer</th>
+                    <th>Frage</th>
+                    <th>Antwort</th>
+                    <th>Status</th>
+                    <th>Punkte</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ans in answers %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <span class="rounded-circle bg-primary text-white px-2 py-1 me-2">
+                                {{ ans.user.username|slice:":1"|upper }}
+                            </span>
+                            {{ ans.user.first_name }} {{ ans.user.last_name }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if ans.question.question_text|length > 80 %}
+                            <span>{{ ans.question.question_text|slice:":80" }}...</span>
+                        {% else %}
+                            <span>{{ ans.question.question_text }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ans.answer_text|length > 80 %}
+                            <span >{{ ans.answer_text|slice:":80" }}...</span>
+                        {% else %}
+                            <span >{{ ans.answer_text }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ans.is_reviewed %}
+                            <span class="badge bg-success">✅ Bewertet</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">⏳ Offen</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ans.score %}
+                            <span class="badge bg-info">{{ ans.score }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'review_text_answer' ans.id %}?session={{ request.GET.session }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            Bewerten
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-emoji-frown"></i> Keine Antworten vorhanden.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

@@ -3,8 +3,11 @@
 <h2>Antwort bewerten</h2>
 
 <p><strong>Frage:</strong> {{ answer.question.question_text }}</p>
-<p><strong>Antwort des Benutzers:</strong> {{ answer.answer_text }}</p>
-
+<p><strong>Antwort des Benutzers:</strong></p>
+  <div class="card card-body">
+        {{ answer.answer_text }}
+    </div>
+<br>
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="session" value="{{ request.GET.session }}">

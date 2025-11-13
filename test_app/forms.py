@@ -1,5 +1,5 @@
 from django import forms
-from .models import Topics, Questions
+from .models import *
 
 class TopicForm(forms.ModelForm):
     class Meta:
@@ -47,3 +47,48 @@ class QuestionForm(forms.ModelForm):
                 "Die Antwort muss einer der vier Optionen entsprechen."
             )
         return answer
+
+from .models import TextQuestion
+
+from django import forms
+from .models import TextQuestion
+
+class TextQuestionForm(forms.ModelForm):
+    class Meta:
+        model = TextQuestion
+        fields = ["question_text", "max_score", "des_img"]
+        labels = {
+            "question_text": "Fragetext",
+            "max_score": "Maximale Punkte",
+            "des_img": "Bild (optional)"
+        }
+        widgets = {
+            "question_text": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "max_score": forms.NumberInput(attrs={"class": "form-control", "step": "0.5"}),
+            "des_img": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }
+
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "email"]
+        widgets = {
+            "first_name": forms.TextInput(attrs={"class": "form-control"}),
+            "last_name": forms.TextInput(attrs={"class": "form-control"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+        }
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ["profile_image", "phone", "bio","gradiantcolor1","gradiantcolor2","cover_angle"]
+        widgets = {
+            "profile_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "phone": forms.TextInput(attrs={"class": "form-control"}),
+            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "gradiantcolor1": forms.HiddenInput(),
+            "gradiantcolor2": forms.HiddenInput(),
+            "cover_angle": forms.HiddenInput(),
+
+        }

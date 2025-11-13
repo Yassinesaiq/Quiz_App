@@ -14,9 +14,9 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-success">Speichern</button>
-        <button type="submit" name="save_continue" class="btn btn-success">➕ Speichern & neue Frage</button>
-        <a href="{% url 'topics_list' %}" class="btn btn-secondary">Abbrechen</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Speichern</button>
+        <button type="submit" name="save_continue" class="btn btn-success"><i class="bi bi-pencil-square"></i> Speichern & neue Frage</button>
+        <a href="{% url 'topics_list' %}" class="btn btn-secondary"><i class="bi bi-x-square"></i> Abbrechen</a>
     </form>
 
     <!-- Hier die Grafik -->

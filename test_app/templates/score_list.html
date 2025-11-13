@@ -1,192 +1,242 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block content %}
-<style>
-    .results-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 30px;
-        justify-content: center;
-        margin-top: 30px;
-    }
 
-   
-    .result-card {
-        width: 350px;
-        background: #fff;
-        border-radius: 20px;
-        border: 4px solid #fff;
-        box-shadow: rgba(0, 0, 0, 0.15) 0px 10px 20px,
-                    rgba(0, 0, 0, 0.1) 0px 6px 6px;
-        padding: 20px;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        opacity: 0;
-        transform: translateY(30px);
-    }
 
-    .result-card.visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
+<div class="Rftr-container mb-4">
+    <div class="card shadow-sm border-0 filter-card"> 
+        <h5>
+            <i class="bi bi-funnel-fill"></i> Ergebnisse filtern & Aktionen
+        </h5>          
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="get">
+                <div class="row g-3 justify-content-center">
+                    <!-- Thema -->
+                    <div class="col-12 col-md-2">
+                        <input type="text" name="topic" class="form-control form-control-sm" placeholder="Thema" value="{{ request.GET.topic }}" list="topic-list">
+                        <datalist id="topic-list">
+                            {% for topic in topic_suggestions %}
+                                <option value="{{ topic }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <!-- Typ -->
+                    <div class="col-12 col-md-2">
+                        <input type="text" name="topic_type" class="form-control form-control-sm" placeholder="Typ" value="{{ request.GET.topic_type }}" list="type-list">
+                        <datalist id="type-list">
+                            {% for type in type_suggestions %}
+                                <option value="{{ type }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <!-- Vorname -->
+                    <div class="col-12 col-md-2">
+                        <input type="text" name="first_name" class="form-control form-control-sm" placeholder="Vorname" value="{{ request.GET.first_name }}" list="first-name-list">
+                        <datalist id="first-name-list">
+                            {% for name in first_name_suggestions %}
+                                <option value="{{ name }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <!-- Nachname -->
+                    <div class="col-12 col-md-2">
+                        <input type="text" name="last_name" class="form-control form-control-sm" placeholder="Nachname" value="{{ request.GET.last_name }}" list="last-name-list">
+                        <datalist id="last-name-list">
+                            {% for name in last_name_suggestions %}
+                                <option value="{{ name }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
 
-    .result-card h3 {
-        margin-top: 0;
-        font-weight: 700;
-        color: #333;
-    }
-
-    .result-card p {
-        margin: 5px 0;
-        font-size: 14px;
-    }
-
-    .result-card ul {
-        padding-left: 18px;
-        font-size: 13px;
-    }
-
-    .result-card li {
-        margin-bottom: 10px;
-    }
-
-    .result-card hr {
-        margin-top: 15px;
-        margin-bottom: 10px;
-    }
-
-    .result-card .btn {
-        display: inline-block;
-        text-align: center;
-        text-decoration: none;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-    }
-</style>
-
-<div class="row mb-4 justify-content-center">
-    <div class="col-12 col-md-5 d-grid">
-        <a href="{% url 'download_all_results_excel' %}" class="btn btn-outline-dark">
-            📥 Alle Ergebnisse als Excel herunterladen
-        </a>
-    </div>
-    <div class="col-12 col-md-5 d-grid">
-        <a onclick="return confirm('Möchten Sie Alle Ergebnis wirklich löschen?');" href="{% url 'delete_all_result' %}" class="btn btn-outline-danger">
-            <i class="bi bi-trash"></i> Alle Ergebnisse löschen
-        </a>
+                <!-- Buttons -->
+                <div class="row mt-4 justify-content-center">
+                    <div class="col-6 col-md-2 d-grid mb-2">
+                        <button type="submit" class="btn btn-sm btn-primary-light shadow-sm">
+                            <i class="bi bi-search"></i> Filtern
+                        </button>
+                    </div>
+                    <div class="col-6 col-md-2 d-grid mb-2">
+                        <a href="{% url 'score_list_view' %}" class="btn btn-sm btn-secondary-light shadow-sm">
+                            <i class="bi bi-arrow-clockwise"></i> Zurücksetzen
+                        </a>
+                    </div>
+                    <div class="col-12 col-md-4 d-grid mb-2">
+                        <a href="{% url 'download_all_results_excel' %}" class="btn btn-sm btn-outline-success shadow-sm">
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i> Ergebnisse als Excel herunterladen
+                        </a>
+                    </div>
+                    <div class="col-12 col-md-4 d-grid mb-2">
+                        <a onclick="return confirm('⚠️ Möchten Sie wirklich ALLE Ergebnisse löschen?');"
+                           href="{% url 'delete_all_result' %}"
+                           class="btn btn-sm btn-outline-danger shadow-sm">
+                            <i class="bi bi-trash"></i> Alle Ergebnisse löschen
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+
 
 <div class="results-grid">
     {% for result in results %}
     <div class="result-card">
-         <h3>{{ result.user.first_name }} {{ result.user.last_name }}</h3>
-    <p><strong>Thema:</strong> {{ result.topic }}</p>
-
-    <!-- MCQ-Score -->
-    <p><strong>MCQ-Score:</strong> {{ result.score }}/{{ result.maxsize }}</p>
-
-    <!-- Textantworten Score (falls vorhanden) -->
-    {% if result.text_answers %}
-        <p><strong>Textantworten:</strong> {{ result.total_text_score }}/
-            {{ result.text_answers|length|add:"0" }} Fragen bewertet
-            {% if result.pending_count > 0 %}
-                <span class="text-warning">(⏳ {{ result.pending_count }} offen)</span>
+    <div class="d-flex align-items-center mb-3">
+        {% if result.user.profile.profile_image %}
+            <img src="{{ result.user.profile.profile_image.url }}" 
+                 alt="{{ result.user.first_name }}" 
+                 class="rounded-circle me-3" 
+                 style="width:50px; height:50px; object-fit:cover;">
+        {% else %}
+            <img src="{% static 'images/default_profile2.jpg' %}" 
+                 alt="Default Avatar" 
+                 class="rounded-circle me-3" 
+                 style="width:50px; height:50px; object-fit:cover;">
+        {% endif %}
+        <h3 class="mb-0">{{ result.user.first_name }} {{ result.user.last_name }}</h3>
+    </div>
+        <p><strong>Thema:</strong> {{ result.topic }}</p>
+        <p><strong>Typ:</strong> 
+            <span class="badge bg-secondary">{{ result.topic_type }}</span>
+        </p>
+        <!-- Gesamtpunkte immer anzeigen -->
+        <p>
+            <strong>Gesamt:</strong> {{ result.total_score }} / {{ result.total_max_score }}
+            {% if result.total_max_score > 0 %}
+                {% widthratio result.total_score result.total_max_score 100 as percent %}
+                <span style="font-size:13px;" class="badge ms-2 
+                    {% if percent|add:0 > 50 %}
+                        bg-success
+                    {% elif percent|add:0 == 50 %}
+                        bg-warning text-dark
+                    {% else %}
+                        bg-danger
+                    {% endif %}
+                ">
+                    {{ percent|floatformat:0 }}%
+                </span>
             {% endif %}
         </p>
-    {% endif %}
 
-    <!-- Gesamt-Score -->
-    <p>
-        <strong>Gesamt:</strong> 
-        {{ result.total_score }} / {{ result.total_max_score }}
-        {% if result.total_max_score > 0 %}
-            <span class="badge bg-primary ms-2">
-                {{ result.total_score|floatformat:1 }} / {{ result.total_max_score|floatformat:1 }} 
-                ({{ result.total_score|divisibleby:result.total_max_score|floatformat:0 }}%)
-            </span>
+        <!-- Details nach Typ -->
+        {% if result.topic_type == "MCQ" %}
+            <p><strong>MCQ-Score:</strong> {{ result.score }}/{{ result.maxsize }}</p>
+            {% if result.wrong_answers %}
+            <div style="margin-top: 15px;">
+                <h4 style="margin-bottom: 8px;"><i style="color:red;" class="bi bi-x-circle"></i> Falsche Antworten:</h4>
+                <ul>
+                    {% for wrong in result.wrong_answers %}
+                    <li>
+                        <strong>Frage:</strong> {{ wrong.question }}<br>
+                        <span style="color: red;"><strong>Falsch:</strong> {{ wrong.selected_option }}</span><br>
+                        <span style="color: green;"><strong>Korrekt:</strong> {{ wrong.correct_answer }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <p style="color: green;"><strong>Alle MCQ Fragen korrekt <i style="color:orange; font-size:20px;"class="bi bi-fire"></i></strong></p>
+            {% endif %}
+
+        {% elif result.topic_type == "Textfrage" %}
+            <p><strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}</p>
+            {% if result.pending_count > 0 %}
+                <span class="text-warning">(<i style="color:#d42304; font-size:18px;" class="bi bi-hourglass-split"></i> {{ result.pending_count }} offen)</span>
+            {% else %}
+                <span class="text-success">Alle bewertet <i style="color:green;" class="bi bi-check-square-fill"></i></span>
+            {% endif %}
+
+        {% elif result.topic_type == "MCQ + Text" %}
+            <!-- MCQ -->
+            <p><strong>MCQ-Score:</strong> {{ result.score }}/{{ result.maxsize }}</p>
+
+            {% if result.wrong_answers %}
+            <div style="margin-top: 15px;">
+                <h4 style="margin-bottom: 8px;"><i style="color:red;" class="bi bi-x-circle"></i> MCQ Falsche Antworten:</h4>
+                <ul>
+                    {% for wrong in result.wrong_answers %}
+                    <li>
+                        <strong>Frage:</strong> {{ wrong.question }}<br>
+                        <span style="color: red;"><strong>Falsch:</strong> {{ wrong.selected_option }}</span><br>
+                        <span style="color: green;"><strong>Korrekt:</strong> {{ wrong.correct_answer }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <p style="color: green;"><strong>Alle MCQ Fragen korrekt <i style="color:orange; font-size:20px;"class="bi bi-fire"></i></strong></p>
+            {% endif %}
+
+            <!-- Textfragen -->
+            <p><strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}</p>
+            {% if result.pending_count > 0 %}
+                <span class="text-warning">(<i style="color:#d42304; font-size:18px;" class="bi bi-hourglass-split"></i> {{ result.pending_count }} offen)</span>
+            {% else %}
+                <span class="text-success">Alle bewertet <i style="color:green;" class="bi bi-check-square-fill"></i></span>
+            {% endif %}
+
+            <!-- Gesamt -->
+            <p><strong>Gesamt:</strong> {{ result.total_score }} / {{ result.total_max_score }}</p>
+
         {% endif %}
-    </p>
 
-    <p><strong>Datum:</strong> {{ result.created_at|date:"d.m.Y H:i" }}</p>
-
-        {% if result.wrong_answers.all %}
-        <div style="margin-top: 15px;">
-            <h4 style="margin-bottom: 8px;">❌ MCQ Falsche Antworten:</h4>
-            <ul>
-                {% for wrong in result.wrong_answers.all %}
-                <li>
-                    <strong>Frage:</strong> {{ wrong.question }}<br>
-                    <span style="color: red;"><strong>Falsch gewählt:</strong> {{ wrong.selected_option }}</span><br>
-                    <span style="color: green;"><strong>Richtige Antwort:</strong> {{ wrong.correct_answer }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% else %}
-        <p style="color: green;"><strong>Alle MCQ Fragen korrekt beantwortet 🎉</strong></p>
-        {% endif %}
         <hr>
         <p style="font-size: 13px; color: gray;">
-    🗑   Ergebnis wird am {{ result.deletion_date|date:"d.m.Y" }} um {{ result.deletion_date|time:"H:i" }} automatisch gelöscht.
+            <i class="bi bi-trash2-fill"></i> Ergebnis wird am {{ result.deletion_date|date:"d.m.Y" }} um {{ result.deletion_date|time:"H:i" }} automatisch gelöscht.
         </p>
 
-        <a href="{% url 'download_result_excel' result.id %}" class="btn btn-outline-success mt-2">
-            <i class="bi bi-file-earmark-excel"></i> Als Excel herunterladen
+        <a href="{% url 'download_result_excel' result.session_id %}" class="btn btn-outline-success mt-2">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Als Excel herunterladen
         </a>
 
-        <!-- ✅ Neuer Button + Status-Icon -->
-        <div class="d-flex align-items-center mt-3">
-    {% if result.session_id %}
-        <a href="{% url 'text_answers_list' %}?session={{ result.session_id }}"
-           class="btn btn-outline-primary">
-            <i class="bi bi-chat-left-text"></i> Textantworten ansehen
-        </a>
-
-        {% if result.pending_count > 0 %}
-            <i class="bi bi-exclamation-circle-fill text-warning ms-3"
-               title="{{ result.pending_count }} unbewertete Antwort(en)"></i>
-        {% else %}
-            <i class="bi bi-check-circle-fill text-success ms-3"
-               title="Alle Textantworten bewertet"></i>
+        {% if result.topic_type != "MCQ" %}
+        <!-- Textantworten ansehen + Status-Icon -->
+            <div class="d-flex align-items-center mt-2">
+                <a href="{% url 'text_answers_list' %}?session={{ result.session_id }}"
+                class="btn btn-outline-primary">
+                <i class="bi bi-file-text"></i> Textantworten ansehen
+                </a>
+                {% if result.pending_count > 0 %}
+                    <i class="bi bi-exclamation-circle-fill text-warning ms-3"
+                    title="{{ result.pending_count }} unbewertete Antwort(en)"></i>
+                {% else %}
+                    <i class="bi bi-check-circle-fill text-success ms-3"
+                    title="Alle Textantworten bewertet"></i>
+                {% endif %}
+            </div>
         {% endif %}
-    {% else %}
-        <span class="text-muted">Keine Textfragen vorhanden</span>
-    {% endif %}
-</div>
-
-
 
         <a onclick="return confirm('Möchten Sie dieses Ergebnis wirklich löschen?');" 
-           href="{% url 'delete_result' result.id %}"
-           class="btn btn-outline-danger mt-2">
-           <i class="bi bi-trash"></i> Ergebnis löschen
+            href="{% url 'delete_result' result.session_id  %}"
+            class="btn btn-outline-danger mt-2">
+            <i class="bi bi-trash2-fill"></i> Ergebnis löschen
         </a>
-       
+
     </div>
     {% empty %}
     <p>Keine Ergebnisse vorhanden.</p>
     {% endfor %}
-
-    
-
 </div>
 
 <script>
-     document.addEventListener("DOMContentLoaded", function () {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1 });
-
-        document.querySelectorAll('.result-card').forEach(card => {
-            observer.observe(card);
+document.addEventListener("DOMContentLoaded", function () {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
         });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.result-card').forEach(card => {
+        observer.observe(card);
     });
+});
 </script>
+
+
 {% endblock %}
