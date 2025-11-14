@@ -2,7 +2,7 @@ from django.apps import AppConfig
 from django.utils import timezone
 from datetime import timedelta
 
-class AppConfig(AppConfig):
+'''class AppConfig(AppConfig):
     name = 'test_app'
 
     def ready(self):
@@ -12,4 +12,4 @@ class AppConfig(AppConfig):
         for session in old_sessions:
             TextAnswer.objects.filter(session=session).delete()
             QuizResult.objects.filter(session=session).delete()
-            session.delete()
+            session.delete()'''
