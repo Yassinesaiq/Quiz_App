@@ -83,24 +83,24 @@ WSGI_APPLICATION = 'test_app.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-import dj_database_url
+
 
 DATABASES = {
 
 
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+   
 
-    # 'default': {
-     #   'ENGINE': 'django.db.backends.mysql',
-      #  'OPTIONS': {
-       #     'init_command': 'SET default_storage_engine=INNODB',
-        #},
-        #'NAME': 'test_app',
-        #'USER': 'root',
-        #'PASSWORD': 'Houda2018',
-        #'HOST':'localhost',
-        #'PORT':'3306',
-    #} """
+   default': {
+        'ENGINE': 'django.db.backends.mysql',
+       'OPTIONS': {
+          'init_command': 'SET default_storage_engine=INNODB',
+       },
+       'NAME': 'test_app',
+        'USER': 'root',
+        'PASSWORD': 'Houda2018',
+        'HOST':'localhost',
+       'PORT':'3306',
+   } 
 
 }
 
