@@ -96,7 +96,7 @@ DATABASES = {
        'OPTIONS': {
           'init_command': 'SET default_storage_engine=INNODB',
        },
-       'NAME': 'test_app',
+       'NAME': 'defaultdb',
         'USER': 'doadmin',
         'PASSWORD': 'AVNS_E-KDA-NPMuDoXJmndIv',
         'HOST':'db-mysql-nyc3-81171-do-user-29111604-0.l.db.ondigitalocean.com',
