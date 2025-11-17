@@ -90,7 +90,7 @@ DATABASES = {
 
    
 
-   default': {
+   'default': {
         'ENGINE': 'django.db.backends.mysql',
        'OPTIONS': {
           'init_command': 'SET default_storage_engine=INNODB',
