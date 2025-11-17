@@ -31,7 +31,7 @@ ALLOWED_HOSTS = [
     '10.0.2.2',
     '192.168.26.77:38640',
     'mb-quiz-xshw.onrender.com',
-    'https://hammerhead-app-eaa9e.ondigitalocean.app'
+    'hammerhead-app-eaa9e.ondigitalocean.app'
 ]
 
 
