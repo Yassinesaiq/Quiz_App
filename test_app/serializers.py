@@ -38,6 +38,7 @@ class TopicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topics
         fields = ['topic_id','topic','description', 'image_url','topic_type']
+        
     def get_image_url(self, obj):
         if obj.configuration_img:
             return self.context['request'].build_absolute_uri(obj.configuration_img.url)
