@@ -1,6 +1,7 @@
 from django import forms
 from .models import *
 
+
 class TopicForm(forms.ModelForm):
     class Meta:
         model = Topics
@@ -47,11 +48,6 @@ class QuestionForm(forms.ModelForm):
                 "Die Antwort muss einer der vier Optionen entsprechen."
             )
         return answer
-
-from .models import TextQuestion
-
-from django import forms
-from .models import TextQuestion
 
 class TextQuestionForm(forms.ModelForm):
     class Meta:

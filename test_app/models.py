@@ -47,10 +47,6 @@ class TestSession(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
-    # Optional: Gesamtscore (MCQ + Textfragen)
-    total_score = models.FloatField(default=0)
-    total_score = models.FloatField
-
     def __str__(self):
         return f"TestSession von {self.user.username} für {self.topic.topic} am {self.started_at.strftime('%d.%m.%Y %H:%M')}"
 
@@ -95,8 +91,8 @@ class TextQuestion(models.Model):
     def __str__(self):
         return f"Textfrage: {self.question_text[:50]}"
     
-class TextAnswer(models.Model):
-    
+class TextAnswer(models.Model):   
+
     session = models.ForeignKey(TestSession, on_delete=models.CASCADE, related_name="text_answers", null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='text_answers')
     question = models.ForeignKey('TextQuestion', on_delete=models.CASCADE, related_name='answers')
@@ -105,9 +101,6 @@ class TextAnswer(models.Model):
     score = models.FloatField(null=True, blank=True)  # Vergebene Punkte
     feedback = models.TextField(blank=True, null=True)  # Feedback vom Ausbilder
     created_at = models.DateTimeField(auto_now_add=True)
-    
-    
-
 
     def __str__(self):
         return f"{self.user.username} – {self.question.question_text[:30]}"
@@ -125,8 +118,7 @@ class UserProfile(models.Model):
     gradiantcolor1 =models.TextField(blank=True,null=True)
     gradiantcolor2 =models.TextField(blank=True,null=True)
     cover_angle = models.PositiveIntegerField(default=135)
-
-
+    
 
     def __str__(self):
         return f"Profil von {self.user.username}"

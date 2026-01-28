@@ -71,9 +71,6 @@ class QuizResultSerializer(serializers.ModelSerializer):
 
         return quiz_result
 
-from rest_framework import serializers
-from .models import TextQuestion
-
 class TextQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TextQuestion
