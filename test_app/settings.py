@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '10.0.2.2',
     '192.168.26.77:38640',
-    ' mbquiz-e9o7p.ondigitalocean.app',
+    'mbquiz-e9o7p.ondigitalocean.app',
     'hammerhead-app-eaa9e.ondigitalocean.app'
    
 ]
