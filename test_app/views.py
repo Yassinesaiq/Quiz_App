@@ -266,7 +266,7 @@ def delete_question(request, question_id):
     question.delete()
     return redirect('topic_questions', topic_id=topic_id)
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+
 @login_required
 def dashboard(request):
     topics_count = Topics.objects.count()
@@ -699,8 +699,6 @@ class TextQuestionByTopicNameView(generics.ListAPIView):
         if topic_name:
             return TextQuestion.objects.filter(topic__topic__iexact=topic_name)
         return TextQuestion.objects.none()
-
-
 
     
 
