@@ -32,9 +32,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.urls import reverse
 from django.forms import modelform_factory, inlineformset_factory
+from django.contrib.admin.views.decorators import staff_member_required
 
-def is_admin_or_staff(user):
-    return user.is_superuser or user.is_staff
+
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -82,9 +82,9 @@ class TextQuestionViewset(viewsets.ModelViewSet):
     serializer_class = TextQuestionSerializer
     pagination_class = CustomPagination
     permission_classes = [IsAuthenticated]
-   
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+
+@login_required   
+@staff_member_required(login_url='/login/')
 def topics_list(request):
     topic_type = request.GET.get('topic_type')
     if topic_type:
@@ -93,8 +93,8 @@ def topics_list(request):
         topics = Topics.objects.all()
     return render(request, 'topics_list.html', {'topics': topics, 'topic_type': topic_type})
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def topic_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     questions = Questions.objects.filter(topic_id=topic)
@@ -111,8 +111,8 @@ def topic_questions(request, topic_id):
     })
 
 # ---------------- Topics ---------------- #
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def add_topic(request):
     #  topic_type VORHER initialisieren, damit es immer existiert
     topic_type = None
@@ -147,8 +147,8 @@ def add_topic(request):
         }
     )
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     topic_type = topic.topic_type  #  Typ des Themas beibehalten
@@ -175,8 +175,8 @@ def edit_topic(request, topic_id):
         }
     )
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     with transaction.atomic():
@@ -193,8 +193,8 @@ def delete_topic(request, topic_id):
 
 
 # ---------------- Questions ---------------- #
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def add_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
@@ -230,8 +230,8 @@ def add_question(request, topic_id):
     )
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def edit_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
 
@@ -258,8 +258,8 @@ def edit_question(request, question_id):
         'topic': question.topic_id
     })
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def delete_question(request, question_id):
     question = get_object_or_404(Questions, pk=question_id)
     topic_id = question.topic_id.topic_id
@@ -267,7 +267,8 @@ def delete_question(request, question_id):
     return redirect('topic_questions', topic_id=topic_id)
 
 
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def dashboard(request):
     topics_count = Topics.objects.count()
     questions_count = Questions.objects.count()
@@ -287,8 +288,8 @@ def logout_view(request):
     return redirect('login')  # or use 'home' or a custom page
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def toggle_topic_visibility(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     topic.visible = not topic.visible
@@ -299,6 +300,7 @@ def toggle_topic_visibility(request, topic_id):
 from django.contrib.auth import authenticate, login
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
+
 
 def login_user(request):
     if request.method == 'POST':
@@ -356,8 +358,8 @@ class SubmitResultView(APIView):
         return Response(serializer.errors, status=400)
 
 from django.db.models import Q
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def score_list_view(request):
     # --- Basis-Query ---
     sessions = (
@@ -438,8 +440,8 @@ def score_list_view(request):
 
 #Excel Datei Herunterladen 
 #https://openpyxl.readthedocs.io/en/stable/
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def download_result_excel(request, id):
     if not request.user.is_staff:
         return HttpResponse("Nicht erlaubt", status=403)
@@ -504,8 +506,8 @@ def download_result_excel(request, id):
     workbook.save(response)
     return response
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@staff_member_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def download_all_results_excel(request):
     workbook = Workbook()
     sheet = workbook.active
@@ -613,8 +615,8 @@ def download_all_results_excel(request):
 
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 @transaction.atomic
 def delete_result(request, id):
     session = get_object_or_404(TestSession.objects.select_related("topic__topic_type"), id=id)
@@ -642,8 +644,8 @@ def delete_result(request, id):
 
 from django.db import transaction
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 @transaction.atomic
 def delete_all_result(request):
     #  Alle Sessions zuerst löschen (löscht automatisch TextAnswers, wenn on_delete=CASCADE)
@@ -652,8 +654,8 @@ def delete_all_result(request):
     QuizResult.objects.all().delete()
     return redirect("score_list_view")
 
-
-@staff_member_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def text_answers_list(request):
     session_id = request.GET.get("session")
     if not session_id:
@@ -665,8 +667,7 @@ def text_answers_list(request):
         "session_id": session_id
     })
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@staff_member_required
+
 def review_text_answer(request, answer_id):
     answer = get_object_or_404(TextAnswer, pk=answer_id)
     session_id = request.GET.get("session") or request.POST.get("session")
@@ -769,7 +770,8 @@ def start_test_session(request):
                       "session_id": session.id})
 
 
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def delete_session(request, session_id):
     session = get_object_or_404(TestSession, pk=session_id)
 
@@ -781,8 +783,8 @@ def delete_session(request, session_id):
     return redirect('score_list_view')
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@staff_member_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def choose_topic_type(request):
     if request.method == "POST":
         choice = request.POST.get("choice")
@@ -798,8 +800,8 @@ def choose_topic_type(request):
     return render(request, "choose_topic_type.html")
     
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@staff_member_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def add_text_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
@@ -837,7 +839,8 @@ def add_text_question(request, topic_id):
 
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required   
+@staff_member_required(login_url='/login/')
 def view_text_questions_of_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     text_questions = TextQuestion.objects.filter(topic=topic)
@@ -846,7 +849,8 @@ def view_text_questions_of_topic(request, topic_id):
         "text_questions": text_questions
     })
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required   
+@staff_member_required(login_url='/login/')
 def edit_text_question(request, question_id):
     question = get_object_or_404(TextQuestion, pk=question_id)
     topic_type = question.topic.topic_type
@@ -870,7 +874,8 @@ def edit_text_question(request, question_id):
     })
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required   
+@staff_member_required(login_url='/login/')
 def delete_text_question(request, question_id):
     question = get_object_or_404(TextQuestion, pk=question_id)
     tp_type = question.topic.topic_type.name
@@ -883,7 +888,8 @@ def delete_text_question(request, question_id):
         return redirect("view_text_questions_of_topic", topic_id=topic_id)
 
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
+@login_required   
+@staff_member_required(login_url='/login/')
 def add_mcq_text_question_view(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
 
@@ -957,8 +963,8 @@ def add_mcq_text_question_view(request, topic_id):
         "mcq_form": None,
     })
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def view_mcq_text_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
 
@@ -978,8 +984,8 @@ def view_mcq_text_questions(request, topic_id):
         },
     )
 
-@user_passes_test(is_admin_or_staff, login_url='/azubi/dashboard/')
-@login_required
+@login_required   
+@staff_member_required(login_url='/login/')
 def view_add_mcq_questions(request, topic_id):
         topic = get_object_or_404(Topics, pk=topic_id)
 
@@ -1015,7 +1021,7 @@ from django.contrib import messages
 from .forms import UserForm, UserProfileForm
 
 
-@login_required
+@login_required   
 def user_profile_view(request):
     user = request.user
     profile, created = UserProfile.objects.get_or_create(user=user)
