@@ -317,7 +317,7 @@ def login_user(request):
             print("DEBUG → groups:", groups)
 
             # ✅ redirect by role
-            if "azubis" in groups:
+            if "azubis" or "praktikanten" in groups:
                 return redirect('azubi_dashboard')
             elif user.is_superuser or user.is_staff:
                 return redirect('dashboard')
