@@ -1060,7 +1060,7 @@ def user_profile_view(request):
         "user_profile": profile,
     })
 
-@user_passes_test(lambda u: u.groups.filter(name__iexact='azubis').exists(), login_url='/')
+@user_passes_test(lambda u: u.groups.filter(name__iexact='azubis' or 'praktikanten').exists(), login_url='/')
 @login_required
 def user_dashboard(request):
     user = request.user
