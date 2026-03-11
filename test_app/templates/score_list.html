@@ -141,8 +141,8 @@
     </p>
     <!-- Gesamtpunkte immer anzeigen -->
     <p>
-      <strong>Gesamt:</strong> {{ result.total_score }} / {{
-      result.total_max_score }} {% if result.total_max_score > 0 %} {%
+      <strong>Gesamt:</strong> {{ result.total_score }} / 
+      {{ result.total_max_score }} {% if result.total_max_score > 0 %} {%
       widthratio result.total_score result.total_max_score 100 as percent %}
       <span
         style="font-size: 13px"
@@ -264,8 +264,8 @@
 
     <hr />
     <p style="font-size: 13px; color: gray">
-      <i class="bi bi-trash2-fill"></i> Ergebnis wird am {{
-      result.deletion_date|date:"d.m.Y" }} um {{ result.deletion_date|time:"H:i"
+      <i class="bi bi-trash2-fill"></i> Ergebnis wird am 
+      {{ result.deletion_date|date:"d.m.Y" }} um {{ result.deletion_date|time:"H:i"
       }} automatisch gelöscht.
     </p>
 
