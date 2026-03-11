@@ -37,7 +37,7 @@ xlwt==1.3.0
 whitenoise==6.7.0
 celery==5.3.1
 redis==5.0.1
-django-celery-beat==2.5.0asgiref==3.8.1
+django-celery-beat==2.5.0
 click==8.2.1
 colorama==0.4.6
 distlib==0.3.9
@@ -77,6 +77,8 @@ xlwt==1.3.0
 whitenoise==6.7.0
 celery==5.3.1
 redis==5.0.1
+asgiref==3.8.1
 django-celery-beat==2.5.0
 asgiref==3.8.1
+
 
