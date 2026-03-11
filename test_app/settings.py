@@ -31,8 +31,8 @@ ALLOWED_HOSTS = [
     '10.0.2.2',
     '192.168.26.77:38640',
     'mbquiz-e9o7p.ondigitalocean.app',
-    'hammerhead-app-eaa9e.ondigitalocean.app'
-   
+    'hammerhead-app-eaa9e.ondigitalocean.app',
+    '134.209.254.40'   
 ]
 
 
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'widget_tweaks',
+    'django_celery_beat'
 
 ]
 
@@ -104,6 +105,8 @@ DATABASES = {
 
 }
 
+CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
