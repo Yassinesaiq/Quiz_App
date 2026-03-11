@@ -29,7 +29,10 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '10.0.2.2',
-    '192.168.26.77:38640',          
+    '192.168.26.77:38640',
+    'mbquiz-e9o7p.ondigitalocean.app',
+    'hammerhead-app-eaa9e.ondigitalocean.app'
+   
 ]
 
 
@@ -57,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware'
 
 ]
 
@@ -80,26 +84,23 @@ TEMPLATES = [
 WSGI_APPLICATION = 'test_app.wsgi.application'
 
 
-# Database
+# Database definition 
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-#import dj_database_url
+
 
 DATABASES = {
 
-
-    #'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
-
-     'default': {
+   'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {
-           'init_command': 'SET default_storage_engine=INNODB',
+       'OPTIONS': {
+          'init_command': 'SET default_storage_engine=INNODB',
        },
-        'NAME': 'test_app',
-        'USER': 'root',
-        'PASSWORD': 'Houda2018',
-        'HOST':'localhost',
-        'PORT':'3306',
-    } 
+       'NAME': 'defaultdb',
+        'USER': 'doadmin',
+        'PASSWORD': 'AVNS_E-KDA-NPMuDoXJmndIv',
+        'HOST':'db-mysql-nyc3-81171-do-user-29111604-0.l.db.ondigitalocean.com',
+       'PORT':'25060',
+   } 
 
 }
 
@@ -137,6 +138,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]  # dossier où tu mets tes fichiers CSS, JS, images "statics"

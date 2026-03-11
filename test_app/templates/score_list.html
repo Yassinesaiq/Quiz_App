@@ -176,7 +176,7 @@
       </ul>
     </div>
     {% elif result.score == 0 %}
-    <p style="color: green">
+    <p style="color: red">
       <strong
         >Alle MCQ Fragen Falsch <i style="color: red" class="bi bi-x-circle"></i
       ></strong>
@@ -190,8 +190,7 @@
     </p>
     {% endif %} {% elif result.topic_type == "Textfrage" %}
     <p>
-      <strong>Textantworten:</strong> {{ result.total_text_score }} / {{
-      result.total_text_max_score }}
+      <strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}
     </p>
     {% if result.pending_count > 0 %}
     <span class="text-warning"
@@ -229,9 +228,8 @@
       </ul>
     </div>
     {% elif result.score == 0 %}
-    <p style="color: green">
-      <strong
-        >Alle MCQ Fragen Falsch <i style="color: red" class="bi bi-x-circle"></i
+    <p style="color: red">
+      <strong>Alle MCQ Fragen Falsch <i style="color: red" class="bi bi-x-circle"></i
       ></strong>
     </p>
     {% else %}
@@ -245,8 +243,7 @@
 
     <!-- Textfragen -->
     <p>
-      <strong>Textantworten:</strong> {{ result.total_text_score }} / {{
-      result.total_text_max_score }}
+      <strong>Textantworten:</strong> {{ result.total_text_score }} / {{ result.total_text_max_score }}
     </p>
     {% if result.pending_count > 0 %}
     <span class="text-warning"
