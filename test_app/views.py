@@ -105,7 +105,7 @@ def topic_questions(request, topic_id):
         'topic_type': topic_type
     })
 
-# ---------------- Topics ---------------- #
+# ---------------- Themen ---------------- #
 @login_required   
 @staff_member_required(login_url='/login/')
 def add_topic(request):
@@ -182,7 +182,7 @@ def delete_topic(request, topic_id):
     return redirect('topics_list')
 
 
-# ---------------- Questions ---------------- #
+# ---------------- Fragen ---------------- #
 @login_required   
 @staff_member_required(login_url='/login/')
 def add_question(request, topic_id):
