@@ -1,39 +1,35 @@
-from django.contrib.auth.models import Group, User
-from rest_framework import viewsets ,status
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
-from .serializers import *
-from .models import *
-from django.shortcuts import *
-from .forms import *
-from django.db import transaction
-from django.contrib.auth.decorators import login_required ,user_passes_test
-import logging
-from django.contrib.auth import logout , authenticate , login
-from django.contrib import messages
-from django.views.decorators.http import require_POST
-from django.utils import timezone
 from datetime import timedelta
-from rest_framework.authtoken.models import Token
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated ,AllowAny
-from rest_framework.authentication import TokenAuthentication
-from openpyxl import Workbook
-from django.utils.timezone import localtime
-from rest_framework.decorators import api_view, permission_classes
-from django.contrib.auth.models import User
-from django.http import HttpResponse
-from openpyxl.styles import Font, PatternFill
+import logging
+
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from rest_framework import generics
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import Group, User
+from django.db import transaction
+from django.forms import inlineformset_factory, modelform_factory
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.timezone import localtime
+from django.views.decorators.http import require_POST
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+
+from rest_framework import generics, status, viewsets
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .forms import UserForm, UserProfileForm
 from .models import TextQuestion
 from .serializers import TextQuestionSerializer
-from rest_framework.response import Response
-from rest_framework import status
-from django.urls import reverse
-from django.forms import modelform_factory, inlineformset_factory
-from django.contrib.admin.views.decorators import staff_member_required
-
 
 
 
@@ -102,7 +98,6 @@ def topic_questions(request, topic_id):
     if topic_type == "Textfrage":
         return redirect("view_text_questions_of_topic", topic_id=topic.pk)
     elif topic_type == "MCQ + Text":
-        # Replace 'mcq_text_question_view' with your actual view name for MCQ + Text
         return redirect("view_mcq_text_questions", topic_id=topic.pk)
     return render(request, 'topic_questions.html', {
         'topic': topic,
@@ -114,7 +109,6 @@ def topic_questions(request, topic_id):
 @login_required   
 @staff_member_required(login_url='/login/')
 def add_topic(request):
-    #  topic_type VORHER initialisieren, damit es immer existiert
     topic_type = None
     type_id = request.GET.get("type_id")
     if type_id:
@@ -130,7 +124,7 @@ def add_topic(request):
             topic.created_by = request.user
             topic.created_at = timezone.now() + timedelta(hours=2)
             if topic_type:
-                topic.topic_type = topic_type  #Type speichern
+                topic.topic_type = topic_type 
             topic.save()
             form.save()
             return redirect('topics_list')
@@ -143,7 +137,7 @@ def add_topic(request):
         {
             'form': form,
             'title': 'Thema hinzufügen',
-            'topic_type': topic_type,  # immer gesetzt (None wenn nicht gefunden)
+            'topic_type': topic_type, 
         }
     )
 
@@ -151,7 +145,7 @@ def add_topic(request):
 @staff_member_required(login_url='/login/')
 def edit_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
-    topic_type = topic.topic_type  #  Typ des Themas beibehalten
+    topic_type = topic.topic_type  
 
     if request.method == "POST":
         form = TopicForm(request.POST, request.FILES, instance=topic)
@@ -159,7 +153,7 @@ def edit_topic(request, topic_id):
             topic = form.save(commit=False)
             topic.created_by = request.user
             topic.created_at = timezone.now() + timedelta(hours=2)
-            topic.topic_type = topic_type  #  Sicherstellen, dass Typ nicht verloren geht
+            topic.topic_type = topic_type 
             topic.save()
             return redirect('topics_list')
     else:
@@ -171,7 +165,7 @@ def edit_topic(request, topic_id):
         {
             'form': form,
             'title': 'Thema bearbeiten',
-            'topic_type': topic_type  #  Im Template verfügbar
+            'topic_type': topic_type 
         }
     )
 
@@ -180,13 +174,9 @@ def edit_topic(request, topic_id):
 def delete_topic(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     with transaction.atomic():
-        #  Alle MCQ-Fragen löschen
+ 
         Questions.objects.filter(topic_id=topic).delete()
-
-        #  Alle Textfragen löschen (falls vorhanden)
         TextQuestion.objects.filter(topic=topic).delete()
-
-        #  Danach das Thema selbst löschen
         topic.delete()
 
     return redirect('topics_list')
@@ -203,7 +193,6 @@ def add_question(request, topic_id):
     if topic_type == "MCQ + Text":
         return redirect("add_mcq_text_question_view", topic_id=topic.pk)
 
-    #  Standard: MCQ-Formular
     if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, current_topic=topic)
         if form.is_valid():
@@ -212,9 +201,9 @@ def add_question(request, topic_id):
             question.save()
 
             if "save_continue" in request.POST:
-                return redirect("add_question", topic_id=topic.pk)  # weitere MCQ-Frage
+                return redirect("add_question", topic_id=topic.pk)  
             else:
-                return redirect("topic_questions", topic_id=topic.pk)  # zurück zur Übersicht
+                return redirect("topic_questions", topic_id=topic.pk) 
     else:
         form = QuestionForm(current_topic=topic)
 
@@ -237,17 +226,15 @@ def edit_question(request, question_id):
 
     if request.method == "POST":
         form = QuestionForm(request.POST, request.FILES, instance=question)
-        # Ensure topic_id is not changed
         form.fields["topic_id"].disabled = True
         if form.is_valid():
-            # Do not update topic_id even if POST data contains it
+
             edited_question = form.save(commit=False)
             edited_question.topic_id = question.topic_id
             edited_question.save()
             return redirect('topic_questions', topic_id=question.topic_id.pk)
     else:
         form = QuestionForm(instance=question)
-        # Disable topic_id field in the form
         if "topic_id" in form.fields:
             form.fields["topic_id"].disabled = True
         logger = logging.getLogger(__name__)
@@ -283,9 +270,9 @@ def dashboard(request):
 
 @require_POST
 def logout_view(request):
-    logout(request)  # This removes the session
+    logout(request) 
     messages.success(request, "Sie wurden erfolgreich abgemeldet.")
-    return redirect('login')  # or use 'home' or a custom page
+    return redirect('login') 
 
 
 @login_required   
@@ -307,7 +294,7 @@ def login_user(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        print(f"DEBUG → username: {username}, password: {password}")  # optional debug
+        print(f"DEBUG → username: {username}, password: {password}")  
 
         user = authenticate(request, username=username, password=password)
 
@@ -316,7 +303,6 @@ def login_user(request):
             groups = [g.name.lower() for g in user.groups.all()]
             print("DEBUG → groups:", groups)
 
-            # ✅ redirect by role
             if "azubis" or "praktikanten" in groups:
                 return redirect('azubi_dashboard')
             elif user.is_superuser or user.is_staff:
@@ -364,7 +350,7 @@ def score_list_view(request):
     # --- Basis-Query ---
     sessions = (
         TestSession.objects
-        .select_related("user", "user__profile", "topic__topic_type")  # ✅ Profil des Users mitladen
+        .select_related("user", "user__profile", "topic__topic_type")  
         .prefetch_related("quiz_results__wrong_answers", "text_answers__question")
         .order_by("-started_at")
     )
@@ -447,8 +433,7 @@ def download_result_excel(request, id):
         return HttpResponse("Nicht erlaubt", status=403)
 
     result = get_object_or_404(QuizResult, id=id)
-    session = result.session  # damit wir die dazugehörigen TextAnswers bekommen
-
+    session = result.session  
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Testergebnis"
@@ -593,7 +578,7 @@ def download_all_results_excel(request):
 
     # Farben setzen
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row):
-        score_cell = row[5]  # Score-Spalte
+        score_cell = row[5]  
         score_cell.fill = blue_fill
 
         qtype = row[7].value
@@ -635,7 +620,6 @@ def delete_result(request, id):
         session.quiz_results.all().delete()
         session.text_answers.all().delete()
 
-    # Session selbst löschen
     session.delete()
 
     return redirect("score_list_view")
@@ -648,9 +632,7 @@ from django.db import transaction
 @staff_member_required(login_url='/login/')
 @transaction.atomic
 def delete_all_result(request):
-    #  Alle Sessions zuerst löschen (löscht automatisch TextAnswers, wenn on_delete=CASCADE)
     TestSession.objects.all().delete()
-    # alle QuizResults löschen (löscht WrongAnswers per on_delete=CASCADE)
     QuizResult.objects.all().delete()
     return redirect("score_list_view")
 
@@ -681,7 +663,7 @@ def review_text_answer(request, answer_id):
         max_score = answer.question.max_score
         if score:
             score_val = float(score)
-            answer.score = min(score_val, max_score)  # Prevent exceeding max score
+            answer.score = min(score_val, max_score)  
         answer.feedback = feedback
         answer.is_reviewed = True
         answer.save()
@@ -693,8 +675,7 @@ def review_text_answer(request, answer_id):
 
 class TextQuestionByTopicNameView(generics.ListAPIView):
     serializer_class = TextQuestionSerializer
-    pagination_class = None   #  Wichtig: keine Pagination
-
+    pagination_class = None   
     def get_queryset(self):
         topic_name = self.request.query_params.get("topic")
         if topic_name:
@@ -709,8 +690,8 @@ class SubmitTextAnswerAPI(APIView):
     def post(self, request):
         question_id = request.data.get("question")
         answer_text = request.data.get("answer_text")
-        session_id = request.data.get("session")  # New: session ID from Android
-        topic_name = request.data.get("topic")    # optional fallback to auto-create session
+        session_id = request.data.get("session") 
+        topic_name = request.data.get("topic")   
 
         if not question_id or not answer_text:
             return Response({"error": "question and answer_text are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -719,8 +700,6 @@ class SubmitTextAnswerAPI(APIView):
             question = TextQuestion.objects.get(id=question_id)
         except TextQuestion.DoesNotExist:
             return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        #  Ensure session exists (create one if none provided)
         session = None
         if session_id:
             session = TestSession.objects.filter(id=session_id, user=request.user).first()
@@ -735,16 +714,16 @@ class SubmitTextAnswerAPI(APIView):
             else:
                 return Response({"error": "Session not found and no topic provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Speichern der Textantwort
+
         text_answer = TextAnswer.objects.create(
             user=request.user,
             question=question,
             answer_text=answer_text,
-            session=session  #  Link to session
+            session=session 
         )
 
         return Response(
-            {"success": "Answer saved", "session_id": session.id},  #  Send back session ID
+            {"success": "Answer saved", "session_id": session.id}, 
             status=status.HTTP_201_CREATED
         )
 
@@ -774,8 +753,6 @@ def start_test_session(request):
 @staff_member_required(login_url='/login/')
 def delete_session(request, session_id):
     session = get_object_or_404(TestSession, pk=session_id)
-
-    # Optional: Nur Admins oder Besitzer dürfen löschen
     if not request.user.is_staff and session.user != request.user:
         return HttpResponse("Nicht erlaubt", status=403)
 
@@ -789,12 +766,12 @@ def choose_topic_type(request):
     if request.method == "POST":
         choice = request.POST.get("choice")
         try:
-            topic_type = TopicType.objects.get(name__iexact=choice)  # Hole den Typ aus DB
+            topic_type = TopicType.objects.get(name__iexact=choice) 
         except TopicType.DoesNotExist:
             topic_type = None
 
         if topic_type:
-            # Weiterleiten mit Typ-ID
+        
             return redirect(f"{reverse('add_topic')}?type_id={topic_type.id}")
 
     return render(request, "choose_topic_type.html")
@@ -806,7 +783,6 @@ def add_text_question(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
     topic_type = topic.topic_type.name if topic.topic_type else "MCQ"
 
-    # Only allow adding text questions for correct topic types
     if topic_type not in ["Textfrage", "MCQ + Text"]:
         messages.error(request, "Für diesen Thema-Typ können keine Textfragen hinzugefügt werden.")
         return redirect("topics_list")
@@ -909,16 +885,16 @@ def add_mcq_text_question_view(request, topic_id):
         text_question.save()
         messages.success(request, "Textfrage gespeichert. Du kannst weitere hinzufügen oder zu MCQ-Fragen wechseln.")
 
-        # statt sofort zu mcq -> wieder Text-Form zeigen, aber mit text_question für den Button
+     
         text_form = TextQuestionForm()  
         return render(request, "add_mcq_text_question.html", {
             "topic": topic,
             "step": "text",
             "text_form": text_form,
             "mcq_form": None,
-            "text_question": text_question,  #  für den Button
+            "text_question": text_question, 
         })
-        # Initial laden: Schritt 1 oder Schritt 2
+      
     if step == "mcq":
             text_question_id = request.GET.get("text_id")
             if not text_question_id:
@@ -936,7 +912,7 @@ def add_mcq_text_question_view(request, topic_id):
                     question.topic_id = topic
                     question.save()
                     messages.success(request, "MCQ-Frage gespeichert.")
-                    # Nach dem Speichern: Entweder weitere MCQ-Frage oder zurück zur Übersicht
+                  
                     if "save_continue" in request.POST:
                         return redirect(f"{reverse('add_mcq_text_question_view', args=[topic.topic_id])}?step=mcq&text_id={text_question_id}")
                     else:
@@ -954,7 +930,6 @@ def add_mcq_text_question_view(request, topic_id):
             })
 
 
-    # Default: Schritt 1 (Textfrage anzeigen)
     text_form = TextQuestionForm()
     return render(request, "add_mcq_text_question.html", {
         "topic": topic,
@@ -968,10 +943,7 @@ def add_mcq_text_question_view(request, topic_id):
 def view_mcq_text_questions(request, topic_id):
     topic = get_object_or_404(Topics, pk=topic_id)
 
-    # Textfragen dieses Themas laden
     text_questions = TextQuestion.objects.filter(topic=topic).prefetch_related("answers")
-
-    # MCQ-Fragen dieses Themas laden
     mcq_questions = Questions.objects.filter(topic_id=topic)
 
     return render(
@@ -991,12 +963,12 @@ def view_add_mcq_questions(request, topic_id):
 
         if request.method == "POST":
             form = QuestionForm(request.POST, request.FILES)
-            # topic_id darf nicht geändert werden, daher Feld deaktivieren
+         
             if "topic_id" in form.fields:
                 form.fields["topic_id"].disabled = True
             if form.is_valid():
                 question = form.save(commit=False)
-                question.topic_id = topic  # Thema bleibt unverändert
+                question.topic_id = topic  
                 question.save()
                 if "save_continue" in request.POST:
                     return redirect("view_add_mcq_questions", topic_id=topic.pk)
@@ -1012,13 +984,6 @@ def view_add_mcq_questions(request, topic_id):
             "title": f"Neue MCQ-Frage für: {topic.topic}",
             "topic": topic
         })
-
-
-# views.py
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .forms import UserForm, UserProfileForm
 
 
 @login_required   
@@ -1044,14 +1009,13 @@ def user_profile_view(request):
             profile.save()
 
             messages.success(request, "Profil erfolgreich aktualisiert!")
-            # Kein redirect – stattdessen Template neu rendern mit aktuellen Daten
+      
         else:
             messages.error(request, "Bitte überprüfe deine Eingaben.")
     else:
         user_form = UserForm(instance=user)
         profile_form = UserProfileForm(instance=profile)
 
-    # Profil nach Speichern neu laden (wichtig)
     profile.refresh_from_db()
 
     return render(request, template_name, {
@@ -1087,11 +1051,7 @@ def user_dashboard(request):
         total_score = quiz_score + text_score
         total_max = quiz_max + text_max
         percent = int((total_score / total_max) * 100) if total_max > 0 else 0
-
         
-
-        
-
         results.append({
             "topic": s.topic.topic,
             "type": s.topic.topic_type.name if s.topic.topic_type else "Unbekannt",
@@ -1102,7 +1062,7 @@ def user_dashboard(request):
             "total_score": total_score,
             "total_max": total_max,
             "percent": percent,
-            "created_at": localtime(s.started_at + timedelta(hours=2)), # wann (Datum/Uhrzeit) anzeigen
+            "created_at": localtime(s.started_at + timedelta(hours=2)), 
         })
 
     remarks = Remark.objects.filter(user=user).order_by("-created_at")
